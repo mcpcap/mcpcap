@@ -4,6 +4,10 @@
 
 ![mcpcap logo](https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png)
 
+<a href="https://glama.ai/mcp/servers/@danohn/mcpcap">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@danohn/mcpcap/badge" alt="mcpcap MCP server" />
+</a>
+
 A modular Python MCP (Model Context Protocol) Server for analyzing PCAP files. mcpcap enables LLMs to read and analyze network packet captures with protocol-specific analysis tools that accept local file paths or remote URLs as parameters (no file uploads - provide the path or URL to your PCAP file).
 
 ## Overview
