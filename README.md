@@ -13,7 +13,8 @@ mcpcap uses a modular architecture to analyze different network protocols found 
 ### Key Features
 
 - **Stateless MCP Tools**: Each analysis accepts PCAP file paths or URLs as parameters (no file uploads)
-- **Modular Architecture**: DNS, DHCP, ICMP, and CapInfos modules with easy extensibility for new protocols  
+- **Modular Architecture**: DNS, DHCP, ICMP, TCP, and CapInfos modules with easy extensibility for new protocols  
+- **Advanced TCP Analysis**: Connection tracking, anomaly detection, retransmission analysis, and traffic flow inspection
 - **Local & Remote PCAP Support**: Analyze files from local storage or HTTP URLs
 - **Scapy Integration**: Leverages scapy's comprehensive packet parsing capabilities
 - **Specialized Analysis Prompts**: Security, networking, and forensic analysis guidance
@@ -48,11 +49,11 @@ uvx mcpcap
 Start mcpcap as a stateless MCP server:
 
 ```bash
-# Default: Start with DNS, DHCP, and ICMP modules
+# Default: Start with DNS, DHCP, ICMP, TCP, and CapInfos modules
 mcpcap
 
 # Start with specific modules only
-mcpcap --modules dns
+mcpcap --modules dns,tcp
 
 # With packet analysis limits
 mcpcap --max-packets 1000
@@ -95,6 +96,27 @@ analyze_icmp_packets("/path/to/icmp.pcap")
 analyze_icmp_packets("https://example.com/ping-capture.pcap")
 ```
 
+**TCP Connection Analysis:**
+```
+analyze_tcp_connections("/path/to/capture.pcap")
+analyze_tcp_connections("/path/to/capture.pcap", server_ip="192.168.1.1", server_port=80)
+```
+
+**TCP Anomaly Detection:**
+```
+analyze_tcp_anomalies("/path/to/capture.pcap", server_ip="10.0.0.1")
+```
+
+**TCP Retransmission Analysis:**
+```
+analyze_tcp_retransmissions("/path/to/capture.pcap")
+```
+
+**Traffic Flow Analysis:**
+```
+analyze_traffic_flow("/path/to/capture.pcap", server_ip="192.168.1.100")
+```
+
 **CapInfos Analysis:**
 ```
 analyze_capinfos("/path/to/any.pcap")
@@ -130,6 +152,35 @@ analyze_capinfos("https://example.com/capture.pcap")
   - Detect ICMP error messages (unreachable, time exceeded)
   - Monitor for potential ICMP-based attacks or reconnaissance
 
+### TCP Analysis Tools
+
+- **`analyze_tcp_connections(pcap_file, server_ip=None, server_port=None, detailed=False)`**: TCP connection state analysis
+  - Track TCP three-way handshake (SYN, SYN-ACK, ACK)
+  - Analyze connection lifecycle and termination (FIN, RST)
+  - Identify successful vs failed connections
+  - Filter by server IP and/or port
+  - Detect connection issues and abnormal closures
+
+- **`analyze_tcp_anomalies(pcap_file, server_ip=None, server_port=None)`**: Intelligent TCP anomaly detection
+  - Automatically detect common network problems
+  - Identify client vs server-initiated RST patterns (firewall blocks)
+  - Detect high retransmission rates (network quality issues)
+  - Diagnose handshake failures
+  - Root cause analysis with confidence scoring
+  - Actionable recommendations
+
+- **`analyze_tcp_retransmissions(pcap_file, server_ip=None, threshold=0.02)`**: TCP retransmission analysis
+  - Measure overall and per-connection retransmission rates
+  - Identify connections with quality issues
+  - Compare against configurable thresholds
+  - Detect network congestion and packet loss
+
+- **`analyze_traffic_flow(pcap_file, server_ip, server_port=None)`**: Bidirectional traffic flow analysis
+  - Analyze client-to-server vs server-to-client traffic
+  - Identify traffic asymmetry
+  - Determine RST packet sources
+  - Interpret connection patterns and behaviors
+
 ### CapInfos Analysis Tools
 
 - **`analyze_capinfos(pcap_file)`**: PCAP file metadata and statistics
@@ -158,6 +209,10 @@ mcpcap provides specialized analysis prompts to guide LLM analysis:
 - **`icmp_security_analysis`** - ICMP-based attacks and reconnaissance detection
 - **`icmp_forensic_investigation`** - Timeline reconstruction and network mapping
 
+### TCP Prompts
+- **`tcp_connection_troubleshooting`** - Connection issues, handshake analysis, termination patterns
+- **`tcp_security_analysis`** - Attack detection, firewall analysis, anomaly identification
+
 ## Configuration Options
 
 ### Module Selection
@@ -165,9 +220,11 @@ mcpcap provides specialized analysis prompts to guide LLM analysis:
 ```bash
 # Load specific modules
 mcpcap --modules dns              # DNS analysis only
+mcpcap --modules tcp              # TCP analysis only
 mcpcap --modules dhcp             # DHCP analysis only
 mcpcap --modules icmp             # ICMP analysis only  
-mcpcap --modules dns,dhcp,icmp,capinfos    # All modules (default)
+mcpcap --modules dns,tcp          # DNS and TCP analysis
+mcpcap --modules dns,dhcp,icmp,tcp,capinfos    # All modules (default)
 ```
 
 ### Analysis Limits
@@ -180,7 +237,7 @@ mcpcap --max-packets 1000
 ### Complete Configuration Example
 
 ```bash
-mcpcap --modules dns,dhcp,icmp,capinfos --max-packets 500
+mcpcap --modules dns,dhcp,icmp,tcp,capinfos --max-packets 500
 ```
 
 ## CLI Reference
@@ -190,8 +247,8 @@ mcpcap [--modules MODULES] [--max-packets N]
 ```
 
 **Options:**
-- `--modules MODULES`: Comma-separated modules to load (default: `dns,dhcp,icmp,capinfos`)
-  - Available modules: `dns`, `dhcp`, `icmp`, `capinfos`
+- `--modules MODULES`: Comma-separated modules to load (default: `dns,dhcp,icmp,tcp,capinfos`)
+  - Available modules: `dns`, `dhcp`, `icmp`, `tcp`, `capinfos`
 - `--max-packets N`: Maximum packets to analyze per file (default: unlimited)
 
 **Examples:**
@@ -199,8 +256,11 @@ mcpcap [--modules MODULES] [--max-packets N]
 # Start with all modules
 mcpcap
 
-# DNS analysis only
-mcpcap --modules dns
+# DNS and TCP analysis only
+mcpcap --modules dns,tcp
+
+# TCP analysis for troubleshooting connections
+mcpcap --modules tcp
 
 # With packet limits for large files
 mcpcap --max-packets 1000
@@ -236,7 +296,7 @@ mcpcap's modular design supports easy extension:
 
 ### Core Components
 1. **BaseModule**: Shared file handling, validation, and remote download
-2. **Protocol Modules**: DNS, DHCP, and ICMP analysis implementations  
+2. **Protocol Modules**: DNS, DHCP, ICMP, and TCP analysis implementations  
 3. **MCP Interface**: Tool registration and prompt management
 4. **FastMCP Framework**: MCP server implementation
 
@@ -259,10 +319,11 @@ Create new protocol modules by:
 
 Future modules might include:
 - HTTP/HTTPS traffic analysis
-- TCP connection tracking  
+- UDP connection analysis
 - BGP routing analysis
 - SSL/TLS certificate analysis
 - Network forensics tools
+- Port scan detection
 
 ## Remote File Support
 
