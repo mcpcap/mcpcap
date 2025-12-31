@@ -26,7 +26,7 @@ class BaseModule(ABC):
         pass
 
     @abstractmethod
-    def _analyze_protocol_file(self, pcap_file: str) -> dict[str, Any]:
+    def _analyze_protocol_file(self, pcap_file: str, **kwargs) -> dict[str, Any]:
         """Analyze a local PCAP file for this protocol.
 
         This method should be implemented by each module to perform
@@ -34,28 +34,30 @@ class BaseModule(ABC):
 
         Args:
             pcap_file: Path to local PCAP file
+            **kwargs: Additional module-specific options
 
         Returns:
             Analysis results dictionary
         """
         pass
 
-    def analyze_packets(self, pcap_file: str) -> dict[str, Any]:
+    def analyze_packets(self, pcap_file: str, **kwargs) -> dict[str, Any]:
         """Analyze packets from a PCAP file (local or remote).
 
         Args:
             pcap_file: Path to local PCAP file or HTTP URL to remote PCAP file
+            **kwargs: Additional module-specific options
 
         Returns:
             A structured dictionary containing packet analysis results
         """
         # Check if this is a remote URL or local file
         if pcap_file.startswith(("http://", "https://")):
-            return self._handle_remote_analysis(pcap_file)
+            return self._handle_remote_analysis(pcap_file, **kwargs)
         else:
-            return self._handle_local_analysis(pcap_file)
+            return self._handle_local_analysis(pcap_file, **kwargs)
 
-    def _handle_remote_analysis(self, pcap_url: str) -> dict[str, Any]:
+    def _handle_remote_analysis(self, pcap_url: str, **kwargs) -> dict[str, Any]:
         """Handle remote PCAP file analysis."""
         try:
             # Download remote file to temporary location
@@ -63,7 +65,7 @@ class BaseModule(ABC):
                 temp_path = tmp_file.name
 
             local_path = self._download_pcap_file(pcap_url, temp_path)
-            result = self._analyze_protocol_file(local_path)
+            result = self._analyze_protocol_file(local_path, **kwargs)
 
             # Clean up temporary file
             try:
@@ -79,7 +81,7 @@ class BaseModule(ABC):
                 "pcap_url": pcap_url,
             }
 
-    def _handle_local_analysis(self, pcap_file: str) -> dict[str, Any]:
+    def _handle_local_analysis(self, pcap_file: str, **kwargs) -> dict[str, Any]:
         """Handle local PCAP file analysis."""
         # Validate file exists
         if not os.path.exists(pcap_file):
@@ -96,7 +98,7 @@ class BaseModule(ABC):
             }
 
         try:
-            return self._analyze_protocol_file(pcap_file)
+            return self._analyze_protocol_file(pcap_file, **kwargs)
         except Exception as e:
             return {
                 "error": f"Failed to analyze PCAP file '{pcap_file}': {str(e)}",

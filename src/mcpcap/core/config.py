@@ -15,7 +15,7 @@ class Config:
             modules: List of modules to load
             max_packets: Maximum number of packets to analyze per file
         """
-        self.modules = modules or ["dns", "dhcp", "icmp"]
+        self.modules = modules or ["dns", "dhcp", "icmp", "capinfos", "tcp", "payload"]
         self.max_packets = max_packets
 
         self._validate_configuration()

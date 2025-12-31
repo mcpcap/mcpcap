@@ -6,6 +6,7 @@ from ..modules.capinfos import CapInfosModule
 from ..modules.dhcp import DHCPModule
 from ..modules.dns import DNSModule
 from ..modules.icmp import ICMPModule
+from ..modules.payload import PayloadModule
 from ..modules.tcp import TCPModule
 from .config import Config
 
@@ -35,6 +36,8 @@ class MCPServer:
             self.modules["capinfos"] = CapInfosModule(config)
         if "tcp" in self.config.modules:
             self.modules["tcp"] = TCPModule(config)
+        if "payload" in self.config.modules:
+            self.modules["payload"] = PayloadModule(config)
 
         # Register tools
         self._register_tools()
@@ -60,6 +63,10 @@ class MCPServer:
                 self.mcp.tool(module.analyze_tcp_anomalies)
                 self.mcp.tool(module.analyze_tcp_retransmissions)
                 self.mcp.tool(module.analyze_traffic_flow)
+            elif module_name == "payload":
+                self.mcp.tool(module.analyze_payload)
+                self.mcp.tool(module.extract_database_queries)
+                self.mcp.tool(module.detect_protocols)
 
     def run(self) -> None:
         """Start the MCP server."""

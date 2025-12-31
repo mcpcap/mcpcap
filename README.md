@@ -13,8 +13,11 @@ mcpcap uses a modular architecture to analyze different network protocols found 
 ### Key Features
 
 - **Stateless MCP Tools**: Each analysis accepts PCAP file paths or URLs as parameters (no file uploads)
-- **Modular Architecture**: DNS, DHCP, ICMP, TCP, and CapInfos modules with easy extensibility for new protocols  
+- **Modular Architecture**: DNS, DHCP, ICMP, TCP, Payload, and CapInfos modules with easy extensibility for new protocols  
 - **Advanced TCP Analysis**: Connection tracking, anomaly detection, retransmission analysis, and traffic flow inspection
+- **Payload Analysis**: Automatic protocol detection (MySQL, PostgreSQL, Redis), SQL query extraction, encryption detection
+- **Database Protocol Support**: Extract SQL queries and commands from MySQL, PostgreSQL, and Redis traffic
+- **Encryption Detection**: Identify TLS/SSL encryption with intelligent recommendations for analysis
 - **Local & Remote PCAP Support**: Analyze files from local storage or HTTP URLs
 - **Scapy Integration**: Leverages scapy's comprehensive packet parsing capabilities
 - **Specialized Analysis Prompts**: Security, networking, and forensic analysis guidance
@@ -49,11 +52,11 @@ uvx mcpcap
 Start mcpcap as a stateless MCP server:
 
 ```bash
-# Default: Start with DNS, DHCP, ICMP, TCP, and CapInfos modules
+# Default: Start with DNS, DHCP, ICMP, TCP, Payload, and CapInfos modules
 mcpcap
 
 # Start with specific modules only
-mcpcap --modules dns,tcp
+mcpcap --modules dns,tcp,payload
 
 # With packet analysis limits
 mcpcap --max-packets 1000
@@ -123,6 +126,13 @@ analyze_capinfos("/path/to/any.pcap")
 analyze_capinfos("https://example.com/capture.pcap")
 ```
 
+**Payload Analysis:**
+```
+analyze_payload("/path/to/capture.pcap")
+extract_database_queries("/path/to/mysql.pcap", protocol="mysql")
+detect_protocols("/path/to/capture.pcap")
+```
+
 ## Available Tools
 
 ### DNS Analysis Tools
@@ -190,6 +200,36 @@ analyze_capinfos("https://example.com/capture.pcap")
   - Data throughput metrics (bytes/second, bits/second)
   - Similar to Wireshark's capinfos(1) utility
 
+### Payload Analysis Tools
+
+- **`analyze_payload(pcap_file, port=None, protocol="auto")`**: Complete application-layer analysis
+  - Automatic protocol detection (MySQL, PostgreSQL, Redis, MongoDB, HTTP, TLS)
+  - Extract all TCP/UDP payloads with hex and ASCII representation
+  - Detect encryption status and TLS versions
+  - Parse database protocols and extract queries/commands
+  - Generate intelligent recommendations for encrypted traffic
+  
+- **`extract_database_queries(pcap_file, protocol="auto", port=None)`**: Specialized SQL/command extraction
+  - Extract SQL queries from MySQL, PostgreSQL traffic
+  - Parse Redis commands (GET, SET, HGET, etc.)
+  - Identify query types (SELECT, INSERT, UPDATE, DELETE)
+  - Filter by protocol and port
+  - Works only with unencrypted traffic (provides guidance for encrypted)
+
+- **`detect_protocols(pcap_file, port=None)`**: Quick protocol identification
+  - Identify application protocols with confidence scores
+  - Detect TLS/SSL encryption
+  - No full payload parsing (faster than analyze_payload)
+  - Useful for understanding traffic composition
+
+**Supported Protocols:**
+- MySQL (port 3306) - Server handshake, COM_QUERY, OK/ERR responses
+- PostgreSQL (port 5432) - Startup messages, Simple Query, Prepared Statements
+- Redis (port 6379) - RESP protocol, commands and responses
+- MongoDB (port 27017) - Wire protocol detection
+- HTTP/HTTPS (ports 80, 8080, 443) - Request/response line detection
+- TLS/SSL - Version detection (1.0, 1.1, 1.2, 1.3)
+
 ## Analysis Prompts
 
 mcpcap provides specialized analysis prompts to guide LLM analysis:
@@ -213,6 +253,11 @@ mcpcap provides specialized analysis prompts to guide LLM analysis:
 - **`tcp_connection_troubleshooting`** - Connection issues, handshake analysis, termination patterns
 - **`tcp_security_analysis`** - Attack detection, firewall analysis, anomaly identification
 
+### Payload Prompts
+- **`payload_database_analysis`** - Extract and analyze SQL queries from database traffic
+- **`payload_security_analysis`** - Detect suspicious commands, SQL injection patterns
+- **`payload_encryption_analysis`** - Identify encryption, provide decryption guidance
+
 ## Configuration Options
 
 ### Module Selection
@@ -221,10 +266,11 @@ mcpcap provides specialized analysis prompts to guide LLM analysis:
 # Load specific modules
 mcpcap --modules dns              # DNS analysis only
 mcpcap --modules tcp              # TCP analysis only
+mcpcap --modules payload          # Payload analysis only
 mcpcap --modules dhcp             # DHCP analysis only
 mcpcap --modules icmp             # ICMP analysis only  
-mcpcap --modules dns,tcp          # DNS and TCP analysis
-mcpcap --modules dns,dhcp,icmp,tcp,capinfos    # All modules (default)
+mcpcap --modules dns,tcp,payload  # Multiple modules
+mcpcap --modules dns,dhcp,icmp,tcp,capinfos,payload    # All modules (default)
 ```
 
 ### Analysis Limits
@@ -237,7 +283,7 @@ mcpcap --max-packets 1000
 ### Complete Configuration Example
 
 ```bash
-mcpcap --modules dns,dhcp,icmp,tcp,capinfos --max-packets 500
+mcpcap --modules dns,dhcp,icmp,tcp,capinfos,payload --max-packets 500
 ```
 
 ## CLI Reference
@@ -247,8 +293,8 @@ mcpcap [--modules MODULES] [--max-packets N]
 ```
 
 **Options:**
-- `--modules MODULES`: Comma-separated modules to load (default: `dns,dhcp,icmp,tcp,capinfos`)
-  - Available modules: `dns`, `dhcp`, `icmp`, `tcp`, `capinfos`
+- `--modules MODULES`: Comma-separated modules to load (default: `dns,dhcp,icmp,tcp,capinfos,payload`)
+  - Available modules: `dns`, `dhcp`, `icmp`, `tcp`, `capinfos`, `payload`
 - `--max-packets N`: Maximum packets to analyze per file (default: unlimited)
 
 **Examples:**
@@ -261,6 +307,9 @@ mcpcap --modules dns,tcp
 
 # TCP analysis for troubleshooting connections
 mcpcap --modules tcp
+
+# Payload analysis for database traffic
+mcpcap --modules payload
 
 # With packet limits for large files
 mcpcap --max-packets 1000
@@ -296,9 +345,11 @@ mcpcap's modular design supports easy extension:
 
 ### Core Components
 1. **BaseModule**: Shared file handling, validation, and remote download
-2. **Protocol Modules**: DNS, DHCP, ICMP, and TCP analysis implementations  
+2. **Protocol Modules**: DNS, DHCP, ICMP, TCP, and Payload analysis implementations  
 3. **MCP Interface**: Tool registration and prompt management
 4. **FastMCP Framework**: MCP server implementation
+5. **Protocol Detectors**: Automatic protocol identification engine
+6. **Database Parsers**: MySQL, PostgreSQL, Redis protocol parsers
 
 ### Tool Flow
 ```
@@ -317,8 +368,12 @@ Create new protocol modules by:
 3. Registering analysis tools with the MCP server
 4. Adding specialized analysis prompts
 
-Future modules might include:
-- HTTP/HTTPS traffic analysis
+Future enhancements might include:
+- MongoDB wire protocol full implementation
+- HTTP/HTTPS request/response complete extraction
+- Enhanced SQL injection detection
+- Sensitive data detection (passwords, tokens)
+- Statistical analysis (query frequency, slow queries)
 - UDP connection analysis
 - BGP routing analysis
 - SSL/TLS certificate analysis
@@ -354,10 +409,12 @@ When analyzing PCAP files:
 
 Contributions welcome! Areas for contribution:
 
-- **New Protocol Modules**: Add support for HTTP, BGP, TCP, etc.
-- **Enhanced Analysis**: Improve existing DNS/DHCP analysis
-- **Security Features**: Add more threat detection capabilities
+- **New Protocol Modules**: Add support for HTTP, BGP, SMTP, etc.
+- **Enhanced Database Parsers**: MongoDB, Cassandra, ElasticSearch protocols
+- **Enhanced Analysis**: Improve existing protocol analysis
+- **Security Features**: Add more threat detection capabilities (SQL injection, data exfiltration)
 - **Performance**: Optimize analysis for large PCAP files
+- **Stream Reassembly**: Handle fragmented TCP packets
 
 ## License
 
