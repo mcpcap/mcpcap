@@ -27,6 +27,9 @@ class TestCLI:
         mock_config.assert_called_once_with(
             modules=["dns", "dhcp", "icmp", "tcp", "sip", "capinfos"],
             max_packets=None,
+            transport="stdio",
+            host="127.0.0.1",
+            port=8080,
         )
         mock_server.assert_called_once_with(config_instance)
         server_instance.run.assert_called_once()
@@ -110,6 +113,9 @@ class TestCLI:
         mock_config.assert_called_once_with(
             modules=["dhcp"],
             max_packets=None,
+            transport="stdio",
+            host="127.0.0.1",
+            port=8080,
         )
         assert result == 0
 
@@ -132,5 +138,8 @@ class TestCLI:
         mock_config.assert_called_once_with(
             modules=["dns", "dhcp"],
             max_packets=None,
+            transport="stdio",
+            host="127.0.0.1",
+            port=8080,
         )
         assert result == 0
