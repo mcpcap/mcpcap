@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from fastmcp import FastMCP
 from scapy.all import IP, TCP, IPv6, rdpcap
@@ -21,8 +21,8 @@ class TCPModule(BaseModule):
     def analyze_tcp_connections(
         self,
         pcap_file: str,
-        server_ip: Optional[str] = None,
-        server_port: Optional[int] = None,
+        server_ip: str | None = None,
+        server_port: int | None = None,
         detailed: bool = False,
     ) -> dict[str, Any]:
         """
@@ -65,8 +65,8 @@ class TCPModule(BaseModule):
     def analyze_tcp_anomalies(
         self,
         pcap_file: str,
-        server_ip: Optional[str] = None,
-        server_port: Optional[int] = None,
+        server_ip: str | None = None,
+        server_port: int | None = None,
     ) -> dict[str, Any]:
         """
         Detect TCP traffic patterns through statistical analysis.
@@ -106,7 +106,7 @@ class TCPModule(BaseModule):
     def analyze_tcp_retransmissions(
         self,
         pcap_file: str,
-        server_ip: Optional[str] = None,
+        server_ip: str | None = None,
         threshold: float = 0.02,
     ) -> dict[str, Any]:
         """
@@ -135,7 +135,7 @@ class TCPModule(BaseModule):
         self,
         pcap_file: str,
         server_ip: str,
-        server_port: Optional[int] = None,
+        server_port: int | None = None,
     ) -> dict[str, Any]:
         """
         Analyze bidirectional traffic flow characteristics.
@@ -208,7 +208,7 @@ class TCPModule(BaseModule):
             }
 
     def _apply_filters(
-        self, packets: list, server_ip: Optional[str], server_port: Optional[int]
+        self, packets: list, server_ip: str | None, server_port: int | None
     ) -> list:
         """Apply IP and port filters to packets."""
         if not server_ip and not server_port:
@@ -264,7 +264,6 @@ class TCPModule(BaseModule):
                 normal_close += 1
 
         # Detect issues
-        total_rst = sum(c["rst_count"] for c in connection_details)
         total_retrans = sum(c["retransmissions"] for c in connection_details)
 
         if reset_connections > 0:
@@ -378,7 +377,7 @@ class TCPModule(BaseModule):
         self, pcap_file: str, tcp_packets: list, all_packets: list
     ) -> dict[str, Any]:
         """Detect TCP anomalies using pattern-based analysis.
-        
+
         This method collects observable metrics and patterns from the traffic,
         without making assumptions about root causes. The analysis focuses on
         factual observations that can be derived from packet-level data.
@@ -391,7 +390,7 @@ class TCPModule(BaseModule):
 
         # Collect comprehensive statistics
         stats = self._collect_tcp_statistics(connections, tcp_packets)
-        
+
         # Detect observable patterns (not diagnoses)
         patterns = self._detect_tcp_patterns(stats, connections)
 
@@ -609,12 +608,10 @@ class TCPModule(BaseModule):
         self, connections: dict, tcp_packets: list
     ) -> dict[str, Any]:
         """Collect comprehensive TCP statistics from connections.
-        
+
         Returns factual metrics without interpretation.
         """
         server_ip = self._analysis_kwargs.get("server_ip")
-        server_port = self._analysis_kwargs.get("server_port")
-        
         stats = {
             "total_connections": len(connections),
             "total_packets": len(tcp_packets),
@@ -650,22 +647,22 @@ class TCPModule(BaseModule):
                 "unknown": 0,
             },
         }
-        
+
         for conn_key, pkts in connections.items():
             src_ip, src_port, dst_ip, dst_port = conn_key
             conn_info = self._analyze_single_connection(conn_key, pkts)
-            
+
             # Handshake analysis
             if conn_info["handshake_completed"]:
                 stats["handshake"]["successful"] += 1
             else:
                 stats["handshake"]["failed"] += 1
-            
+
             # Flag counting
             for pkt in pkts:
                 tcp = pkt[TCP]
                 flags = tcp.flags
-                
+
                 if flags & 0x02:  # SYN
                     stats["flags"]["syn"] += 1
                 if flags & 0x12 == 0x12:  # SYN-ACK
@@ -673,39 +670,41 @@ class TCPModule(BaseModule):
                 if flags & 0x04:  # RST
                     stats["flags"]["rst"] += 1
                     pkt_src_ip, _ = self._extract_ips(pkt)
-                    
+
                     # Track RST by source IP
                     stats["rst_distribution"]["by_source"][pkt_src_ip] = (
                         stats["rst_distribution"]["by_source"].get(pkt_src_ip, 0) + 1
                     )
-                    
+
                     # Track RST by direction (if server info provided)
                     if server_ip:
                         if pkt_src_ip == server_ip:
-                            stats["rst_distribution"]["by_direction"]["from_server"] += 1
+                            stats["rst_distribution"]["by_direction"][
+                                "from_server"
+                            ] += 1
                         else:
                             stats["rst_distribution"]["by_direction"]["to_server"] += 1
                     else:
                         stats["rst_distribution"]["by_direction"]["unknown"] += 1
-                        
+
                 if flags & 0x01:  # FIN
                     stats["flags"]["fin"] += 1
                 if flags & 0x10:  # ACK
                     stats["flags"]["ack"] += 1
-            
+
             # RST connections
             if conn_info["rst_count"] > 0:
                 stats["rst_distribution"]["connections_with_rst"].append(
                     f"{src_ip}:{src_port} <-> {dst_ip}:{dst_port}"
                 )
-            
+
             # Retransmissions
             retrans = conn_info["retransmissions"]
             stats["retransmissions"]["total"] += retrans
             if retrans > 0:
                 conn_str = f"{src_ip}:{src_port} <-> {dst_ip}:{dst_port}"
                 stats["retransmissions"]["by_connection"][conn_str] = retrans
-            
+
             # Connection states
             if conn_info["close_reason"] == "reset":
                 stats["connection_states"]["reset"] += 1
@@ -715,108 +714,122 @@ class TCPModule(BaseModule):
                 stats["connection_states"]["established"] += 1
             else:
                 stats["connection_states"]["unknown"] += 1
-        
+
         # Calculate rates
         stats["retransmissions"]["rate"] = (
             stats["retransmissions"]["total"] / stats["total_packets"]
             if stats["total_packets"] > 0
             else 0
         )
-        
+
         return stats
 
     def _detect_tcp_patterns(
         self, stats: dict, connections: dict
     ) -> list[dict[str, Any]]:
         """Detect observable patterns in TCP traffic.
-        
+
         Returns patterns with factual descriptions, not interpretations.
         Each pattern includes the raw data that led to its detection.
         """
         patterns = []
-        
+
         # Pattern 1: RST asymmetry
         rst_by_dir = stats["rst_distribution"]["by_direction"]
         if rst_by_dir["to_server"] > 0 or rst_by_dir["from_server"] > 0:
             total_rst = rst_by_dir["to_server"] + rst_by_dir["from_server"]
             if total_rst > 0:
-                patterns.append({
-                    "pattern": "rst_directional_asymmetry",
-                    "category": "connection_termination",
-                    "observations": {
-                        "rst_to_server": rst_by_dir["to_server"],
-                        "rst_from_server": rst_by_dir["from_server"],
-                        "ratio": rst_by_dir["to_server"] / total_rst if total_rst > 0 else 0,
-                        "affected_connections": stats["rst_distribution"]["connections_with_rst"],
-                    },
-                    "description": f"RST packets show directional bias: {rst_by_dir['to_server']} toward server, {rst_by_dir['from_server']} from server",
-                })
-        
+                patterns.append(
+                    {
+                        "pattern": "rst_directional_asymmetry",
+                        "category": "connection_termination",
+                        "observations": {
+                            "rst_to_server": rst_by_dir["to_server"],
+                            "rst_from_server": rst_by_dir["from_server"],
+                            "ratio": rst_by_dir["to_server"] / total_rst
+                            if total_rst > 0
+                            else 0,
+                            "affected_connections": stats["rst_distribution"][
+                                "connections_with_rst"
+                            ],
+                        },
+                        "description": f"RST packets show directional bias: {rst_by_dir['to_server']} toward server, {rst_by_dir['from_server']} from server",
+                    }
+                )
+
         # Pattern 2: Retransmission rate
         retrans_rate = stats["retransmissions"]["rate"]
         if retrans_rate > 0:
-            patterns.append({
-                "pattern": "packet_retransmission",
-                "category": "reliability",
-                "observations": {
-                    "total_retransmissions": stats["retransmissions"]["total"],
-                    "total_packets": stats["total_packets"],
-                    "rate": retrans_rate,
-                    "threshold": 0.02,  # Common baseline
-                    "exceeds_threshold": retrans_rate > 0.02,
-                    "by_connection": stats["retransmissions"]["by_connection"],
-                },
-                "description": f"Retransmission rate: {retrans_rate:.2%} ({stats['retransmissions']['total']}/{stats['total_packets']} packets)",
-            })
-        
+            patterns.append(
+                {
+                    "pattern": "packet_retransmission",
+                    "category": "reliability",
+                    "observations": {
+                        "total_retransmissions": stats["retransmissions"]["total"],
+                        "total_packets": stats["total_packets"],
+                        "rate": retrans_rate,
+                        "threshold": 0.02,  # Common baseline
+                        "exceeds_threshold": retrans_rate > 0.02,
+                        "by_connection": stats["retransmissions"]["by_connection"],
+                    },
+                    "description": f"Retransmission rate: {retrans_rate:.2%} ({stats['retransmissions']['total']}/{stats['total_packets']} packets)",
+                }
+            )
+
         # Pattern 3: Handshake failure rate
         total_attempts = stats["handshake"]["successful"] + stats["handshake"]["failed"]
         if total_attempts > 0:
             failure_rate = stats["handshake"]["failed"] / total_attempts
             if failure_rate > 0:
-                patterns.append({
-                    "pattern": "handshake_completion",
-                    "category": "connection_establishment",
-                    "observations": {
-                        "successful": stats["handshake"]["successful"],
-                        "failed": stats["handshake"]["failed"],
-                        "failure_rate": failure_rate,
-                    },
-                    "description": f"Handshake success rate: {(1-failure_rate):.1%} ({stats['handshake']['successful']}/{total_attempts})",
-                })
-        
+                patterns.append(
+                    {
+                        "pattern": "handshake_completion",
+                        "category": "connection_establishment",
+                        "observations": {
+                            "successful": stats["handshake"]["successful"],
+                            "failed": stats["handshake"]["failed"],
+                            "failure_rate": failure_rate,
+                        },
+                        "description": f"Handshake success rate: {(1 - failure_rate):.1%} ({stats['handshake']['successful']}/{total_attempts})",
+                    }
+                )
+
         # Pattern 4: Connection termination method
         total_conns = stats["total_connections"]
         if total_conns > 0:
             rst_rate = stats["connection_states"]["reset"] / total_conns
             if rst_rate > 0.1:  # More than 10% reset
-                patterns.append({
-                    "pattern": "abnormal_termination",
-                    "category": "connection_lifecycle",
-                    "observations": {
-                        "reset_count": stats["connection_states"]["reset"],
-                        "normal_close": stats["connection_states"]["closed"],
-                        "total_connections": total_conns,
-                        "reset_rate": rst_rate,
-                    },
-                    "description": f"{rst_rate:.1%} of connections terminated by RST ({stats['connection_states']['reset']}/{total_conns})",
-                })
-        
+                patterns.append(
+                    {
+                        "pattern": "abnormal_termination",
+                        "category": "connection_lifecycle",
+                        "observations": {
+                            "reset_count": stats["connection_states"]["reset"],
+                            "normal_close": stats["connection_states"]["closed"],
+                            "total_connections": total_conns,
+                            "reset_rate": rst_rate,
+                        },
+                        "description": f"{rst_rate:.1%} of connections terminated by RST ({stats['connection_states']['reset']}/{total_conns})",
+                    }
+                )
+
         # Pattern 5: Flag anomalies
         if stats["flags"]["syn"] > 0:
             syn_ack_ratio = stats["flags"]["syn_ack"] / stats["flags"]["syn"]
             if syn_ack_ratio < 0.5:  # Less than 50% of SYNs get SYN-ACK
-                patterns.append({
-                    "pattern": "syn_response_imbalance",
-                    "category": "connection_establishment",
-                    "observations": {
-                        "syn_count": stats["flags"]["syn"],
-                        "syn_ack_count": stats["flags"]["syn_ack"],
-                        "response_ratio": syn_ack_ratio,
-                    },
-                    "description": f"Only {syn_ack_ratio:.1%} of SYN packets received SYN-ACK response",
-                })
-        
+                patterns.append(
+                    {
+                        "pattern": "syn_response_imbalance",
+                        "category": "connection_establishment",
+                        "observations": {
+                            "syn_count": stats["flags"]["syn"],
+                            "syn_ack_count": stats["flags"]["syn_ack"],
+                            "response_ratio": syn_ack_ratio,
+                        },
+                        "description": f"Only {syn_ack_ratio:.1%} of SYN packets received SYN-ACK response",
+                    }
+                )
+
         return patterns
 
     def _generate_pattern_summary(self, patterns: list) -> dict[str, Any]:
@@ -826,29 +839,35 @@ class TCPModule(BaseModule):
             "by_category": {},
             "notable_observations": [],
         }
-        
+
         for pattern in patterns:
             category = pattern["category"]
-            summary["by_category"][category] = summary["by_category"].get(category, 0) + 1
-        
+            summary["by_category"][category] = (
+                summary["by_category"].get(category, 0) + 1
+            )
+
         # Extract notable observations (can be extended)
         for pattern in patterns:
             if pattern["pattern"] == "rst_directional_asymmetry":
                 obs = pattern["observations"]
                 if obs["ratio"] > 0.9 or obs["ratio"] < 0.1:
-                    summary["notable_observations"].append({
-                        "type": "strong_rst_asymmetry",
-                        "detail": f"RST packets heavily biased: {obs['ratio']:.1%} in one direction",
-                    })
-            
+                    summary["notable_observations"].append(
+                        {
+                            "type": "strong_rst_asymmetry",
+                            "detail": f"RST packets heavily biased: {obs['ratio']:.1%} in one direction",
+                        }
+                    )
+
             if pattern["pattern"] == "packet_retransmission":
                 obs = pattern["observations"]
                 if obs["exceeds_threshold"]:
-                    summary["notable_observations"].append({
-                        "type": "high_retransmission",
-                        "detail": f"Retransmission rate {obs['rate']:.2%} exceeds typical threshold of 2%",
-                    })
-        
+                    summary["notable_observations"].append(
+                        {
+                            "type": "high_retransmission",
+                            "detail": f"Retransmission rate {obs['rate']:.2%} exceeds typical threshold of 2%",
+                        }
+                    )
+
         return summary
 
     def setup_prompts(self, mcp: FastMCP) -> None:
