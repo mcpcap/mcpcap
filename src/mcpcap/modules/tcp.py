@@ -304,7 +304,7 @@ class TCPModule(BaseModule):
         self, conn_key: tuple, packets: list
     ) -> dict[str, Any]:
         """Analyze a single TCP connection."""
-        src_ip, src_port, dst_ip, dst_port = conn_key
+        client, server = self._identify_connection_roles(packets)
 
         syn_count = 0
         syn_ack_count = 0
@@ -314,10 +314,11 @@ class TCPModule(BaseModule):
         data_packets = 0
         retransmissions = 0
 
-        seen_seqs = set()
+        seen_seqs_by_sender: dict[tuple[str, int], set[int]] = defaultdict(set)
         handshake_completed = False
 
         for pkt in packets:
+            src_ip, _ = self._extract_ips(pkt)
             tcp = pkt[TCP]
             flags = tcp.flags
 
@@ -339,9 +340,10 @@ class TCPModule(BaseModule):
 
             # Detect retransmissions (simplified)
             seq = tcp.seq
-            if seq in seen_seqs and len(tcp.payload) > 0:
+            sender = (src_ip, tcp.sport)
+            if seq in seen_seqs_by_sender[sender] and len(tcp.payload) > 0:
                 retransmissions += 1
-            seen_seqs.add(seq)
+            seen_seqs_by_sender[sender].add(seq)
 
         # Determine handshake completion
         if syn_count > 0 and syn_ack_count > 0 and ack_count > 0:
@@ -357,8 +359,8 @@ class TCPModule(BaseModule):
             close_reason = "active"
 
         return {
-            "client": f"{src_ip}:{src_port}",
-            "server": f"{dst_ip}:{dst_port}",
+            "client": f"{client[0]}:{client[1]}",
+            "server": f"{server[0]}:{server[1]}",
             "state": "closed" if close_reason in ["reset", "normal"] else "active",
             "handshake_completed": handshake_completed,
             "syn_count": syn_count,
@@ -570,10 +572,30 @@ class TCPModule(BaseModule):
         }
 
     def _get_connection_key(self, pkt) -> tuple:
-        """Extract connection 4-tuple (src_ip, src_port, dst_ip, dst_port)."""
+        """Extract a direction-agnostic connection key."""
         src_ip, dst_ip = self._extract_ips(pkt)
         tcp = pkt[TCP]
-        return (src_ip, tcp.sport, dst_ip, tcp.dport)
+        endpoints = ((src_ip, tcp.sport), (dst_ip, tcp.dport))
+        return tuple(sorted(endpoints))
+
+    def _identify_connection_roles(
+        self, packets: list
+    ) -> tuple[tuple[str, int], tuple[str, int]]:
+        """Infer client/server roles from packet direction.
+
+        Prefer the first SYN without ACK as the connection initiator. If that is not
+        present, fall back to the first packet in capture order.
+        """
+        for pkt in packets:
+            src_ip, dst_ip = self._extract_ips(pkt)
+            tcp = pkt[TCP]
+            if tcp.flags & 0x02 and not (tcp.flags & 0x10):
+                return (src_ip, tcp.sport), (dst_ip, tcp.dport)
+
+        first_pkt = packets[0]
+        src_ip, dst_ip = self._extract_ips(first_pkt)
+        tcp = first_pkt[TCP]
+        return (src_ip, tcp.sport), (dst_ip, tcp.dport)
 
     def _extract_ips(self, pkt) -> tuple:
         """Extract source and destination IPs."""
