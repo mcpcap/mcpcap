@@ -25,7 +25,7 @@ class TestCLI:
 
         # Verify behavior
         mock_config.assert_called_once_with(
-            modules=["dns", "dhcp", "icmp", "capinfos"],
+            modules=["dns", "dhcp", "icmp", "capinfos", "tcp"],
             max_packets=None,
         )
         mock_server.assert_called_once_with(config_instance)
