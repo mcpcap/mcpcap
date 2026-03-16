@@ -13,7 +13,7 @@ pip install mcpcap
 Start mcpcap as a stateless MCP server:
 
 ```bash
-# Start with all modules (default: dns,dhcp,icmp,tcp,sip,capinfos)
+# Start with all modules over stdio (default: dns,dhcp,icmp,tcp,sip,capinfos)
 mcpcap
 
 # Start with specific modules only
@@ -21,9 +21,12 @@ mcpcap --modules dns,tcp
 
 # With packet analysis limits for large files
 mcpcap --max-packets 1000
+
+# Expose an HTTP MCP endpoint
+mcpcap --transport http --host 127.0.0.1 --port 8080
 ```
 
-The server will start and display connection information. Keep this terminal open.
+Keep this terminal open while your client is connected.
 
 ## 3. Connect with an MCP Client
 
@@ -54,6 +57,20 @@ Add mcpcap to your Claude Desktop configuration:
 ```
 
 Restart Claude Desktop and you'll have access to mcpcap analysis tools.
+
+### Option C: HTTP MCP Clients
+
+If your MCP client connects over HTTP rather than stdio, start mcpcap in HTTP mode:
+
+```bash
+mcpcap --transport http --host 127.0.0.1 --port 8080
+```
+
+Then configure the client to connect to:
+
+```text
+http://127.0.0.1:8080/mcp
+```
 
 ## 4. Analyze PCAP Files
 
@@ -133,7 +150,7 @@ analyze_icmp_packets("https://example.com/ping-capture.pcap")
 **Example response:**
 ```json
 {
-  "file": "/path/to/network.pcap", 
+  "file": "/path/to/network.pcap",
   "total_packets": 100,
   "icmp_packets_found": 12,
   "icmp_packets_analyzed": 12,
@@ -325,7 +342,7 @@ Here's a typical analysis workflow:
 
 1. **Start the server**: `mcpcap`
 2. **Analyze DNS traffic**: `analyze_dns_packets("/path/to/capture.pcap")`
-3. **Review results**: Look for unusual domains or query patterns  
+3. **Review results**: Look for unusual domains or query patterns
 4. **Use specialized prompts**: Apply security_analysis for threat detection
 5. **Analyze DHCP traffic**: `analyze_dhcp_packets("/path/to/capture.pcap")`
 6. **Analyze ICMP traffic**: `analyze_icmp_packets("/path/to/capture.pcap")`
@@ -369,7 +386,7 @@ mcpcap includes example PCAP files for testing:
 // Test DNS analysis
 analyze_dns_packets("./examples/dns.pcap")
 
-// Test DHCP analysis  
+// Test DHCP analysis
 analyze_dhcp_packets("./examples/dhcp.pcap")
 
 // Test CapInfos analysis

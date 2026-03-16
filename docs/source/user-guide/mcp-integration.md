@@ -4,10 +4,10 @@ mcpcap runs as a stateless MCP server. You start the server once, then call tool
 
 ## What mcpcap exposes
 
-CLI startup is limited to module loading and packet limits:
+CLI startup supports module selection, packet limits, and MCP transport choice:
 
 ```bash
-mcpcap [--modules MODULES] [--max-packets N]
+mcpcap [--modules MODULES] [--max-packets N] [--transport {stdio,http}] [--host HOST] [--port PORT]
 ```
 
 Available modules:
@@ -45,6 +45,26 @@ If you want to reduce the exposed tool set, configure modules explicitly:
     }
   }
 }
+```
+
+## HTTP MCP Clients
+
+For clients that connect to a network endpoint instead of spawning a local stdio process, start mcpcap in HTTP mode:
+
+```bash
+mcpcap --transport http --host 127.0.0.1 --port 8080
+```
+
+Then point the client at:
+
+```text
+http://127.0.0.1:8080/mcp
+```
+
+If you want the endpoint reachable from other machines on your network, bind a different host:
+
+```bash
+mcpcap --transport http --host 0.0.0.0 --port 8080
 ```
 
 ## MCP Inspector

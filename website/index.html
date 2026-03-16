@@ -4,34 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mcpcap - Network Traffic Analysis for LLMs</title>
-    <meta name="description" content="A modular Python MCP server for analyzing PCAP files with DNS, DHCP, ICMP, TCP, SIP, and CapInfos support">
-    
+    <meta name="description" content="A modular Python MCP server for analyzing PCAP files over stdio or HTTP with DNS, DHCP, ICMP, TCP, SIP, and CapInfos support">
+
     <!-- Favicon -->
     <link rel="icon" href="https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png" type="image/png">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png">
-    
+
     <!-- Theme and Mobile -->
     <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://mcpcap.ai/">
     <meta property="og:title" content="mcpcap - Network Traffic Analysis for LLMs">
-    <meta property="og:description" content="A modular Python MCP server for analyzing PCAP files with DNS, DHCP, ICMP, TCP, SIP, and CapInfos support">
+    <meta property="og:description" content="A modular Python MCP server for analyzing PCAP files over stdio or HTTP with DNS, DHCP, ICMP, TCP, SIP, and CapInfos support">
     <meta property="og:image" content="https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png">
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://mcpcap.ai/">
     <meta property="twitter:title" content="mcpcap - Network Traffic Analysis for LLMs">
-    <meta property="twitter:description" content="A modular Python MCP server for analyzing PCAP files with DNS, DHCP, ICMP, TCP, SIP, and CapInfos support">
+    <meta property="twitter:description" content="A modular Python MCP server for analyzing PCAP files over stdio or HTTP with DNS, DHCP, ICMP, TCP, SIP, and CapInfos support">
     <meta property="twitter:image" content="https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Sitemap -->
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
@@ -71,7 +71,7 @@
                     <span class="gradient-text">for LLMs</span>
                 </h1>
                 <p class="hero-description">
-                    A stateless Python MCP Server providing protocol-specific tools for analyzing PCAP files. Tools accept local file paths or remote URLs as parameters - no file uploads, just specify the path or URL to your PCAP file.
+                    A stateless Python MCP server providing protocol-specific tools for analyzing PCAP files. Run it over stdio for local desktop clients or over HTTP for network-accessible MCP clients. Tools accept local file paths or remote URLs as parameters.
                 </p>
                 <div class="hero-actions">
                     <a href="#quickstart" class="btn btn-primary">Get Started</a>
@@ -152,8 +152,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
                     </div>
-                    <h3 class="feature-title">MCP Protocol</h3>
-                    <p class="feature-description">Seamless integration with Large Language Models through the Model Context Protocol.</p>
+                    <h3 class="feature-title">stdio or HTTP</h3>
+                    <p class="feature-description">Use the default stdio transport for local MCP apps or expose an HTTP endpoint for network-accessible MCP clients.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
@@ -292,7 +292,7 @@
                         <div class="step-number">2</div>
                         <div class="step-content">
                             <h3 class="step-title">Start the Server</h3>
-                            <p class="step-description">Run mcpcap to start the MCP server</p>
+                            <p class="step-description">Run mcpcap over stdio or start an HTTP MCP endpoint</p>
                         </div>
                     </div>
                     <div class="step">
@@ -306,7 +306,8 @@
                 <div class="code-examples">
                     <div class="code-tabs">
                         <button class="code-tab active" data-tab="install">Install</button>
-                        <button class="code-tab" data-tab="local">Local Files</button>
+                        <button class="code-tab" data-tab="stdio">stdio</button>
+                        <button class="code-tab" data-tab="http">HTTP</button>
                         <button class="code-tab" data-tab="remote">Remote Files</button>
                     </div>
                     <div class="code-content">
@@ -320,8 +321,8 @@ uv add mcpcap
 # One-time usage
 uvx mcpcap</code>
                         </pre>
-                        <pre class="code-block" id="local">
-<code># Start MCP server
+                        <pre class="code-block" id="stdio">
+<code># Start MCP server for Claude Desktop and similar clients
 mcpcap
 
 # Then use tools with local file PATHS (not uploads)
@@ -331,6 +332,14 @@ analyze_icmp_packets("/path/to/network.pcap")
 analyze_tcp_connections("/path/to/tcp-session.pcap")
 analyze_sip_packets("/path/to/voip-signaling.pcap")
 analyze_capinfos("/path/to/capture.pcap")</code>
+                        </pre>
+                        <pre class="code-block" id="http">
+<code># Start MCP server with HTTP transport
+mcpcap --transport http --host 127.0.0.1 --port 8080
+
+# Connect your MCP client to:
+http://127.0.0.1:8080/mcp
+</code>
                         </pre>
                         <pre class="code-block" id="remote">
 <code># Start MCP server
