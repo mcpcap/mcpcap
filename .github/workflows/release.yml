@@ -112,7 +112,7 @@ jobs:
         VERSION=${GITHUB_REF#refs/tags/v}
         if [ -f server.json ]; then
           echo "Setting server.json version to ${VERSION}"
-          jq --arg version "$VERSION" '.version = $version' server.json > server.json.tmp
+          jq --arg version "$VERSION" '.version = $version | .packages |= map(.version = $version)' server.json > server.json.tmp
           mv server.json.tmp server.json
         else
           echo "server.json not found at repo root; skipping version update"
