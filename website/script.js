@@ -10,16 +10,16 @@ document.addEventListener('DOMContentLoaded', function() {
 function initMobileNavigation() {
     const navToggle = document.getElementById('navToggle');
     const navMenu = document.getElementById('navMenu');
-    
+
     if (!navToggle || !navMenu) return;
-    
+
     navToggle.addEventListener('click', function() {
         const isOpen = navMenu.classList.contains('active');
         navMenu.classList.toggle('active');
-        
+
         // Update ARIA attribute
         navToggle.setAttribute('aria-expanded', !isOpen);
-        
+
         // Animate hamburger bars
         const bars = navToggle.querySelectorAll('.bar');
         bars.forEach((bar, index) => {
@@ -75,17 +75,17 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 function initCodeTabSwitching() {
     const codeTabs = document.querySelectorAll('.code-tab');
     const codeBlocks = document.querySelectorAll('.code-block');
-    
+
     if (!codeTabs.length) return;
-    
+
     codeTabs.forEach(tab => {
         tab.addEventListener('click', function() {
             const targetTab = this.getAttribute('data-tab');
-            
+
             // Remove active class from all tabs and blocks
             codeTabs.forEach(t => t.classList.remove('active'));
             codeBlocks.forEach(block => block.classList.remove('active'));
-            
+
             // Add active class to clicked tab and corresponding block
             this.classList.add('active');
             const targetBlock = document.getElementById(targetTab);
@@ -100,7 +100,7 @@ function initCodeTabSwitching() {
 window.addEventListener('scroll', function() {
     const navbar = document.querySelector('.navbar');
     const scrollPosition = window.scrollY;
-    
+
     if (scrollPosition > 50) {
         navbar.style.backgroundColor = 'rgba(255, 255, 255, 0.98)';
         navbar.style.boxShadow = '0 4px 6px -1px rgb(0 0 0 / 0.1)';
@@ -114,17 +114,18 @@ window.addEventListener('scroll', function() {
 function initTerminalAnimation() {
     const terminalBody = document.querySelector('.terminal-body');
     if (!terminalBody) return;
-    
+
     const cursor = terminalBody.querySelector('.terminal-cursor');
     const commands = [
         '$ pip install mcpcap',
-        '$ mcpcap',
-        "Starting MCP server 'mcpcap' with transport 'stdio'"
+        '$ mcpcap --transport http --port 8080',
+        "Starting MCP server 'mcpcap' with transport 'http'",
+        'Listening on http://127.0.0.1:8080/mcp'
     ];
-    
+
     let currentCommand = 0;
     let currentChar = 0;
-    
+
     function createTerminalLine(isOutput = false) {
         const line = document.createElement('div');
         line.className = isOutput ? 'terminal-line output' : 'terminal-line';
@@ -134,14 +135,14 @@ function initTerminalAnimation() {
         terminalBody.insertBefore(line, cursor);
         return line;
     }
-    
+
     function typeCommand() {
         if (currentCommand >= commands.length) return;
-        
+
         const command = commands[currentCommand];
         const isOutput = !command.startsWith('$');
         const currentLine = terminalBody.children[terminalBody.children.length - 2]; // Get last line before cursor
-        
+
         if (!currentLine || currentChar === 0) {
             // Create new line for this command
             const newLine = createTerminalLine(isOutput);
@@ -149,9 +150,9 @@ function initTerminalAnimation() {
                 newLine.textContent = '';
             }
         }
-        
+
         const activeLine = terminalBody.children[terminalBody.children.length - 2];
-        
+
         if (currentChar < command.length) {
             if (isOutput) {
                 activeLine.textContent = command.substring(0, currentChar + 1);
@@ -167,7 +168,7 @@ function initTerminalAnimation() {
             setTimeout(typeCommand, 800);
         }
     }
-    
+
     // Start typing animation after a short delay
     setTimeout(typeCommand, 1000);
 }
@@ -178,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
     };
-    
+
     const observer = new IntersectionObserver(function(entries) {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -187,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }, observerOptions);
-    
+
     // Observe feature cards
     document.querySelectorAll('.feature-card, .module-card, .step').forEach(el => {
         el.style.opacity = '0';
@@ -204,7 +205,7 @@ style.textContent = `
         opacity: 1 !important;
         transform: translateY(0) !important;
     }
-    
+
     .feature-card.animate-in {
         transition-delay: calc(var(--delay, 0) * 0.1s);
     }
@@ -220,25 +221,25 @@ document.querySelectorAll('.feature-card').forEach((card, index) => {
 function initCopyButtons() {
     // Add copy buttons to code blocks
     const codeBlocks = document.querySelectorAll('.code-block');
-    
+
     codeBlocks.forEach(block => {
         const copyButton = document.createElement('button');
         copyButton.className = 'copy-button';
         copyButton.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>Copy`;
-        
+
         copyButton.addEventListener('click', function() {
             const code = block.querySelector('code').textContent;
             navigator.clipboard.writeText(code).then(() => {
                 copyButton.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Copied!`;
                 copyButton.classList.add('copied');
-                
+
                 setTimeout(() => {
                     copyButton.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>Copy`;
                     copyButton.classList.remove('copied');
                 }, 2000);
             });
         });
-        
+
         block.style.position = 'relative';
         block.appendChild(copyButton);
     });
@@ -264,13 +265,13 @@ copyButtonStyles.textContent = `
         transition: all 0.3s ease;
         opacity: 0.7;
     }
-    
+
     .copy-button:hover {
         background-color: #475569;
         color: #e2e8f0;
         opacity: 1;
     }
-    
+
     .copy-button.copied {
         background-color: #059669;
         color: white;
@@ -293,14 +294,14 @@ window.addEventListener('scroll', function() {
 document.addEventListener('DOMContentLoaded', function() {
     // Remove any loading states and show content
     document.body.classList.add('loaded');
-    
+
     // Stagger animation for hero stats
     const stats = document.querySelectorAll('.stat');
     stats.forEach((stat, index) => {
         stat.style.opacity = '0';
         stat.style.transform = 'translateY(20px)';
         stat.style.transition = `all 0.6s ease ${index * 0.1}s`;
-        
+
         setTimeout(() => {
             stat.style.opacity = '1';
             stat.style.transform = 'translateY(0)';

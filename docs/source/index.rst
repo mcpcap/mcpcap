@@ -47,6 +47,12 @@ Start the MCP server:
 
    mcpcap
 
+Or expose an HTTP MCP endpoint:
+
+.. code-block:: bash
+
+   mcpcap --transport http --host 127.0.0.1 --port 8080
+
 Then use analysis tools with any PCAP file:
 
 .. code-block:: javascript

@@ -30,6 +30,12 @@ uvx mcpcap
 
 Then connect with an MCP client and pass a PCAP path or URL to the analysis tool you want to call.
 
+For HTTP-based MCP clients, start mcpcap with:
+
+```bash
+mcpcap --transport http --host 127.0.0.1 --port 8080
+```
+
 ## Development Installation
 
 If you want to contribute to mcpcap or modify it:
@@ -41,6 +47,16 @@ cd mcpcap
 
 # Install in development mode with all dependencies
 pip install -e ".[dev,docs,test]"
+
+# Install the repository's Git hooks
+pre-commit install
+```
+
+If you prefer `uv` for development:
+
+```bash
+uv sync --extra dev --extra docs --extra test
+pre-commit install
 ```
 
 ## Verify Installation

@@ -13,7 +13,7 @@ mcpcap uses a modular architecture to analyze different network protocols found 
 ### Key Features
 
 - **Stateless MCP Tools**: Each analysis call supplies its own PCAP path or URL
-- **Modular Architecture**: DNS, DHCP, ICMP, TCP, SIP, and CapInfos modules with easy extensibility for new protocols  
+- **Modular Architecture**: DNS, DHCP, ICMP, TCP, SIP, and CapInfos modules with easy extensibility for new protocols
 - **Advanced TCP Analysis**: Connection lifecycle, traffic patterns, retransmissions, and flow inspection
 - **Local & Remote PCAP Support**: Analyze files from local storage or HTTP URLs
 - **Scapy Integration**: Leverages scapy's comprehensive packet parsing capabilities
@@ -49,7 +49,7 @@ uvx mcpcap
 Start mcpcap as a stateless MCP server:
 
 ```bash
-# Default: Start with DNS, DHCP, ICMP, TCP, SIP, and CapInfos modules
+# Default stdio transport for Claude Desktop and similar clients
 mcpcap
 
 # Start with specific modules only
@@ -57,11 +57,14 @@ mcpcap --modules dns,tcp
 
 # With packet analysis limits
 mcpcap --max-packets 1000
+
+# Start an HTTP transport server for remote MCP clients
+mcpcap --transport http --host 127.0.0.1 --port 8080
 ```
 
 ### 2. Connect Your MCP Client
 
-Configure your MCP client (like Claude Desktop) to connect to the mcpcap server:
+Use stdio transport for local MCP clients like Claude Desktop:
 
 ```json
 {
@@ -72,6 +75,18 @@ Configure your MCP client (like Claude Desktop) to connect to the mcpcap server:
     }
   }
 }
+```
+
+Use HTTP transport when your MCP client expects a network endpoint:
+
+```bash
+mcpcap --transport http --host 127.0.0.1 --port 8080
+```
+
+Point your HTTP-capable MCP client at:
+
+```text
+http://127.0.0.1:8080/mcp
 ```
 
 ### 3. Analyze PCAP Files
@@ -212,7 +227,7 @@ mcpcap provides specialized analysis prompts to guide LLM analysis:
 - **`network_troubleshooting`** - Identify DNS performance and configuration issues
 - **`forensic_investigation`** - Timeline reconstruction and evidence collection
 
-### DHCP Prompts  
+### DHCP Prompts
 - **`dhcp_network_analysis`** - Network administration and IP management
 - **`dhcp_security_analysis`** - Security threats and rogue DHCP detection
 - **`dhcp_forensic_investigation`** - Forensic analysis of DHCP transactions
@@ -240,7 +255,7 @@ mcpcap provides specialized analysis prompts to guide LLM analysis:
 mcpcap --modules dns              # DNS analysis only
 mcpcap --modules tcp              # TCP analysis only
 mcpcap --modules dhcp             # DHCP analysis only
-mcpcap --modules icmp             # ICMP analysis only  
+mcpcap --modules icmp             # ICMP analysis only
 mcpcap --modules sip              # SIP analysis only
 mcpcap --modules dns,tcp          # DNS and TCP analysis
 mcpcap --modules dns,dhcp,icmp,tcp,sip,capinfos    # All modules (default)
@@ -253,6 +268,19 @@ mcpcap --modules dns,dhcp,icmp,tcp,sip,capinfos    # All modules (default)
 mcpcap --max-packets 1000
 ```
 
+### Transport Options
+
+```bash
+# Default stdio transport
+mcpcap
+
+# HTTP transport for network-accessible MCP clients
+mcpcap --transport http
+
+# HTTP transport on a custom interface and port
+mcpcap --transport http --host 0.0.0.0 --port 9000
+```
+
 ### Complete Configuration Example
 
 ```bash
@@ -262,13 +290,16 @@ mcpcap --modules dns,dhcp,icmp,tcp,sip,capinfos --max-packets 500
 ## CLI Reference
 
 ```bash
-mcpcap [--modules MODULES] [--max-packets N]
+mcpcap [--modules MODULES] [--max-packets N] [--transport {stdio,http}] [--host HOST] [--port PORT]
 ```
 
 **Options:**
 - `--modules MODULES`: Comma-separated modules to load (default: `dns,dhcp,icmp,tcp,sip,capinfos`)
   - Available modules: `dns`, `dhcp`, `icmp`, `tcp`, `sip`, `capinfos`
 - `--max-packets N`: Maximum packets to analyze per file (default: unlimited)
+- `--transport {stdio,http}`: MCP transport to expose (default: `stdio`)
+- `--host HOST`: Host to bind for HTTP transport (default: `127.0.0.1`)
+- `--port PORT`: Port to bind for HTTP transport (default: `8080`)
 
 **Examples:**
 ```bash
@@ -283,6 +314,9 @@ mcpcap --modules tcp
 
 # With packet limits for large files
 mcpcap --max-packets 1000
+
+# Expose mcpcap over HTTP
+mcpcap --transport http --host 127.0.0.1 --port 8080
 ```
 
 ## Examples
@@ -317,7 +351,7 @@ mcpcap's modular design supports easy extension:
 
 ### Core Components
 1. **BaseModule**: Shared file handling, validation, and remote download
-2. **Protocol Modules**: DNS, DHCP, ICMP, TCP, SIP, and CapInfos implementations  
+2. **Protocol Modules**: DNS, DHCP, ICMP, TCP, SIP, and CapInfos implementations
 3. **MCP Interface**: Tool registration and prompt management
 4. **FastMCP Framework**: MCP server implementation
 
@@ -396,7 +430,7 @@ MIT
 ## Documentation
 
 - **GitHub**: [github.com/mcpcap/mcpcap](https://github.com/mcpcap/mcpcap)
-- **Documentation**: [docs.mcpcap.ai](https://docs.mcpcap.ai) 
+- **Documentation**: [docs.mcpcap.ai](https://docs.mcpcap.ai)
 - **Website**: [mcpcap.ai](https://mcpcap.ai)
 
 ## Support
