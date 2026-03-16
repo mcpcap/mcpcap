@@ -44,6 +44,7 @@ templates_path = ["_templates"]
 
 # List of patterns to ignore when looking for source files
 exclude_patterns = []
+suppress_warnings = ["epub.unknown_project_files"]
 
 # Options for HTML output
 html_theme = "sphinx_rtd_theme"
