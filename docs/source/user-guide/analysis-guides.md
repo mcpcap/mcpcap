@@ -47,7 +47,7 @@ Look for domains with these characteristics:
 {
   "suspicious_patterns": [
     "a8f3k2l9m.com",
-    "xj9pk2lmn4.biz", 
+    "xj9pk2lmn4.biz",
     "random123abc.tk"
   ]
 }

@@ -58,13 +58,13 @@ class HTTPModule(BaseModule):
         """Perform the actual HTTP packet analysis on a local PCAP file."""
         try:
             packets = rdpcap(pcap_file)
-            
+
             # Filter for TCP packets on HTTP ports (80, 443, 8080, etc.)
             http_packets = []
             for pkt in packets:
                 if pkt.haslayer(TCP):
                     tcp_layer = pkt[TCP]
-                    if (tcp_layer.dport in [80, 443, 8080, 8443] or 
+                    if (tcp_layer.dport in [80, 443, 8080, 8443] or
                         tcp_layer.sport in [80, 443, 8080, 8443]):
                         # Check if packet contains HTTP data
                         if hasattr(pkt[TCP], 'load') and pkt[TCP].load:
@@ -139,7 +139,7 @@ class HTTPModule(BaseModule):
         try:
             tcp_layer = pkt[TCP]
             payload = tcp_layer.load.decode('utf-8', errors='ignore')
-            
+
             packet_info = {
                 "packet_number": packet_number,
                 "timestamp": datetime.fromtimestamp(float(pkt.time)).isoformat(),
@@ -156,7 +156,7 @@ class HTTPModule(BaseModule):
                     "type": "request",
                     **request_info
                 })
-            
+
             # Parse HTTP response
             elif payload.startswith('HTTP/'):
                 response_info = self._parse_http_response(payload)
@@ -181,10 +181,10 @@ class HTTPModule(BaseModule):
         """Parse HTTP request payload."""
         lines = payload.split('\\n')
         request_line = lines[0].strip()
-        
+
         try:
             method, url, version = request_line.split(' ', 2)
-            
+
             # Parse headers
             headers = {}
             for line in lines[1:]:
@@ -196,7 +196,7 @@ class HTTPModule(BaseModule):
 
             # Extract additional info
             parsed_url = urlparse(url)
-            
+
             return {
                 "method": method,
                 "url": url,
@@ -222,13 +222,13 @@ class HTTPModule(BaseModule):
         """Parse HTTP response payload."""
         lines = payload.split('\\n')
         status_line = lines[0].strip()
-        
+
         try:
             parts = status_line.split(' ', 2)
             version = parts[0]
             status_code = int(parts[1])
             status_text = parts[2] if len(parts) > 2 else 'Unknown'
-            
+
             # Parse headers
             headers = {}
             for line in lines[1:]:
@@ -261,27 +261,27 @@ class HTTPModule(BaseModule):
         """Generate statistics from analyzed HTTP packets."""
         request_count = sum(1 for p in packets if p.get("type") == "request")
         response_count = sum(1 for p in packets if p.get("type") == "response")
-        
+
         # Collect methods
         methods = {}
         for p in packets:
             if p.get("type") == "request" and "method" in p:
                 method = p["method"]
                 methods[method] = methods.get(method, 0) + 1
-        
+
         # Collect status codes
         status_codes = {}
         for p in packets:
             if p.get("type") == "response" and "status_code" in p:
                 code = p["status_code"]
                 status_codes[code] = status_codes.get(code, 0) + 1
-        
+
         # Collect unique hosts
         unique_hosts = set()
         for p in packets:
             if p.get("type") == "request" and "host" in p and p["host"] != "unknown":
                 unique_hosts.add(p["host"])
-        
+
         # Collect unique user agents
         unique_user_agents = set()
         for p in packets:
@@ -473,9 +473,9 @@ class TestHTTPModule:
 Host: example.com
 User-Agent: Mozilla/5.0
 Content-Type: application/json"""
-        
+
         result = self.http_module._parse_http_request(request_payload)
-        
+
         assert result["method"] == "GET"
         assert result["url"] == "/api/users?id=123"
         assert result["path"] == "/api/users"
@@ -489,9 +489,9 @@ Content-Type: application/json"""
 Content-Type: text/html
 Content-Length: 1234
 Server: nginx/1.18.0"""
-        
+
         result = self.http_module._parse_http_response(response_payload)
-        
+
         assert result["status_code"] == 200
         assert result["status_text"] == "OK"
         assert result["content_type"] == "text/html"
@@ -503,9 +503,9 @@ Server: nginx/1.18.0"""
         """Test analysis with no HTTP packets."""
         # Mock empty packet capture
         mock_rdpcap.return_value = []
-        
+
         result = self.http_module.analyze_http_packets("test.pcap")
-        
+
         assert result["http_packets_found"] == 0
         assert "No HTTP packets found" in result["message"]
 
@@ -516,24 +516,24 @@ Server: nginx/1.18.0"""
         mock_packet = Mock()
         mock_packet.time = 1234567890
         mock_packet.haslayer.return_value = True
-        
+
         # Mock TCP layer
         mock_tcp = Mock()
         mock_tcp.dport = 80
         mock_tcp.sport = 45678
         mock_tcp.load = b"GET / HTTP/1.1\\r\\nHost: example.com\\r\\n\\r\\n"
         mock_packet.__getitem__.return_value = mock_tcp
-        
-        # Mock IP layer  
+
+        # Mock IP layer
         mock_ip = Mock()
         mock_ip.src = "192.168.1.100"
         mock_ip.dst = "93.184.216.34"
         mock_packet.__getitem__.side_effect = lambda x: mock_ip if x == 1 else mock_tcp
-        
+
         mock_rdpcap.return_value = [mock_packet]
-        
+
         result = self.http_module.analyze_http_packets("test.pcap")
-        
+
         assert result["http_packets_found"] >= 0
         assert "statistics" in result
 
@@ -551,15 +551,15 @@ Server: nginx/1.18.0"""
                 "status_code": 200
             },
             {
-                "type": "request", 
+                "type": "request",
                 "method": "POST",
                 "host": "api.example.com",
                 "user_agent": "curl/7.68.0"
             }
         ]
-        
+
         stats = self.http_module._generate_statistics(packets)
-        
+
         assert stats["total_requests"] == 2
         assert stats["total_responses"] == 1
         assert stats["http_methods"]["GET"] == 1
@@ -676,7 +676,7 @@ except Exception as e:
 ### Security Considerations
 
 - Sanitize extracted data before logging
-- Be careful with user-provided file paths  
+- Be careful with user-provided file paths
 - Handle malformed packets without crashing
 - Don't expose sensitive data in error messages
 
@@ -689,14 +689,14 @@ Add protocol-specific statistics:
 ```python
 def _generate_statistics(self, packets):
     stats = super()._generate_statistics(packets)
-    
+
     # Add HTTP-specific stats
     stats.update({
         "ssl_requests": self._count_ssl_requests(packets),
         "api_calls": self._count_api_calls(packets),
         "error_rate": self._calculate_error_rate(packets)
     })
-    
+
     return stats
 ```
 
@@ -708,10 +708,10 @@ Support different analysis focuses:
 def analyze_http_security(self, pcap_file: str) -> dict[str, Any]:
     """Analyze HTTP traffic with security focus."""
     result = self.analyze_packets(pcap_file)
-    
+
     # Add security-specific analysis
     result["security_analysis"] = self._perform_security_analysis(result["packets"])
-    
+
     return result
 ```
 
@@ -720,7 +720,7 @@ def analyze_http_security(self, pcap_file: str) -> dict[str, Any]:
 ### Common Issues
 
 1. **Module not loading:** Check import statements and registration
-2. **Tests failing:** Ensure mocks match actual scapy packet structure  
+2. **Tests failing:** Ensure mocks match actual scapy packet structure
 3. **Parsing errors:** Handle malformed HTTP packets gracefully
 4. **Performance issues:** Implement efficient filtering and limits
 

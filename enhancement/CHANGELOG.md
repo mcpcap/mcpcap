@@ -299,6 +299,6 @@ This release transforms mcpcap from a protocol-specific analyzer (DNS/DHCP/ICMP)
 
 ---
 
-**Contributors**: Enhancement based on gap analysis and real-world requirements  
-**Date**: 2025-12-22  
+**Contributors**: Enhancement based on gap analysis and real-world requirements
+**Date**: 2025-12-22
 **Version**: TCP Analysis Enhancement Release

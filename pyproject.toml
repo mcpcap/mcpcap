@@ -41,6 +41,7 @@ dev = [
     "setuptools-scm[toml]",
     "build",
     "twine",
+    "pre-commit",
     "ruff",
     "mypy",
     "pytest",

@@ -103,7 +103,7 @@ mcpcap provides specialized prompts to guide your analysis. Use these in your MC
 
 - **`network_troubleshooting`** - Network performance focus:
   - DNS response times and latency
-  - Failed queries and timeouts  
+  - Failed queries and timeouts
   - DNS server issues
   - Configuration problems
 
