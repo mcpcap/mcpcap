@@ -13,7 +13,7 @@ Welcome to the mcpcap developer guide! This section contains everything you need
 
 1. **Fork and clone the repository**
 2. **Set up Python virtual environment** (3.10+)
-3. **Install development dependencies**: `pip install -e ".[dev]"`
+3. **Install development dependencies**: `pip install -e ".[dev]"` or `uv sync --extra dev`
 4. **Install pre-commit hooks**: `pre-commit install`
 
 ### Understanding the Architecture
@@ -34,7 +34,7 @@ src/mcpcap/
 
 Each module inherits from `BaseModule` and implements:
 - Protocol-specific packet analysis
-- Statistics generation  
+- Statistics generation
 - MCP tool registration
 - Analysis prompts for different use cases
 
@@ -65,7 +65,7 @@ Current modules:
 
 Potential future modules:
 - **HTTP/HTTPS** - Web traffic analysis
-- **TLS/SSL** - Encryption and certificate analysis  
+- **TLS/SSL** - Encryption and certificate analysis
 - **ARP** - Address resolution protocol analysis
 - **FTP** - File transfer protocol analysis
 - **SMTP** - Email protocol analysis
@@ -95,12 +95,15 @@ git checkout -b feature/add-[protocol]-module
 ### 4. Code Quality Checks
 
 ```bash
-# Format and lint
+# Run all commit-time hooks
+pre-commit run --all-files
+
+# Run the opt-in type-check hook
+pre-commit run mypy --all-files
+
+# Format and lint directly
 ruff format
 ruff check
-
-# Type checking
-mypy src/mcpcap
 
 # Run all pre-commit hooks
 pre-commit run --all-files
@@ -153,7 +156,7 @@ Generate test data for your protocol:
 # Capture live traffic
 tcpdump -i any port [protocol-port] -w tests/fixtures/[protocol].pcap
 
-# Generate synthetic traffic  
+# Generate synthetic traffic
 scapy # Use scapy to craft specific packets
 
 # Use existing samples

@@ -39,17 +39,29 @@ Thank you for your interest in contributing to mcpcap! This guide will help you 
    pip install -e ".[dev]"
    ```
 
-4. **Development tools are already included:**
+   Or with `uv`:
+   ```bash
+   uv sync --extra dev
+   ```
+
+4. **Install Git hooks:**
+   ```bash
+   pre-commit install
+   ```
+
+   This installs both `pre-commit` and `pre-push` hooks from the repository config.
+
+5. **Development tools are already included:**
    ```bash
    # The [dev] dependencies include ruff, mypy, pytest, etc.
    # No additional installation needed
    ```
 
-5. **Verify installation:**
+6. **Verify installation:**
    ```bash
    # Run tests
    pytest
-   
+
    # Start the server
    mcpcap
    ```
@@ -61,24 +73,30 @@ Thank you for your interest in contributing to mcpcap! This guide will help you 
 We use several tools to maintain code quality:
 
 - **Ruff**: For linting and formatting
-- **Black**: Code formatting (via ruff)
 - **isort**: Import sorting (via ruff)
 - **mypy**: Type checking
+- **pre-commit**: Local automation for formatting, linting, and other guardrails
 
 ### Running Code Quality Checks
 
 ```bash
-# Format code
+# Run all commit-time hooks against the whole repository
+pre-commit run --all-files
+
+# Run the opt-in type-check hook
+pre-commit run mypy --all-files
+
+# Format code directly
 ruff format
 
 # Check linting
 ruff check
 
-# Type checking (when mypy is configured)
-mypy src/mcpcap
+# Type checking (currently opt-in while the codebase is brought to strict mypy compliance)
+mypy src
 
-# Run all checks together
-ruff check && ruff format && pytest
+# Run tests
+pytest
 ```
 
 ### Code Standards
@@ -89,7 +107,7 @@ ruff check && ruff format && pytest
 4. **Logging**: Use proper logging instead of print statements
 5. **Testing**: All new code must have tests with >95% coverage
 
-**Note**: We're currently improving our codebase to fully comply with mypy strict mode. New contributions should follow these standards, and we welcome help fixing existing type issues!
+`pre-commit` currently runs fast hygiene hooks plus Ruff on each commit, and runs `pytest` before pushes. `mypy` is available as a manual hook because the current codebase still has existing strict-mode errors that should be fixed before making it a blocking check.
 
 ## Creating New Modules
 
@@ -202,7 +220,7 @@ class HTTPModule(BaseModule):
 
     def setup_prompts(self, mcp: FastMCP) -> None:
         """Set up HTTP-specific analysis prompts."""
-        
+
         @mcp.prompt
         def http_security_analysis():
             """Prompt for analyzing HTTP traffic from a security perspective"""
@@ -268,9 +286,9 @@ class TestHTTPModule:
         """Test analysis with no HTTP packets."""
         # Mock empty packet capture
         mock_rdpcap.return_value = []
-        
+
         result = self.http_module.analyze_http_packets("test.pcap")
-        
+
         assert result["http_packets_found"] == 0
         assert "No HTTP packets found" in result["message"]
 ```
@@ -356,7 +374,7 @@ We follow **GitHub Flow** for all development:
 
 ```bash
 feature/description-of-feature    # New features
-fix/description-of-bug           # Bug fixes  
+fix/description-of-bug           # Bug fixes
 docs/description-of-change       # Documentation updates
 refactor/description-of-change   # Code refactoring
 test/description-of-test         # Test improvements
@@ -371,10 +389,10 @@ test/description-of-test         # Test improvements
    # Format and lint your code
    ruff format
    ruff check
-   
+
    # Run tests
    pytest
-   
+
    # Optional: Check types (may show issues in existing code)
    mypy src/mcpcap --follow-imports=skip
    ```
@@ -387,7 +405,7 @@ test/description-of-test         # Test improvements
 3. **Write good commit messages:**
    ```
    Add HTTP analysis module
-   
+
    - Implement HTTP packet parsing with request/response analysis
    - Add security-focused analysis prompts
    - Include comprehensive test coverage
@@ -458,7 +476,7 @@ Brief description of changes.
 ### Module Development Tips
 
 1. **Start simple:** Begin with basic packet parsing
-2. **Follow patterns:** Use existing modules as templates  
+2. **Follow patterns:** Use existing modules as templates
 3. **Test incrementally:** Write tests as you develop
 4. **Handle errors gracefully:** Provide meaningful error messages
 5. **Document as you go:** Write docstrings immediately
