@@ -41,6 +41,11 @@ analyze_dhcp_packets("/absolute/path/to/examples/dhcp.pcap")
 analyze_capinfos("./examples/dns.pcap")
 ```
 
+**SIP Analysis:**
+```
+analyze_sip_packets("/absolute/path/to/voip-signaling.pcap")
+```
+
 ## Testing with MCP Inspector
 
 The MCP Inspector provides an easy way to test mcpcap tools:
@@ -71,6 +76,11 @@ analyze_dhcp_packets("./examples/dhcp.pcap")
 **CapInfos Analysis:**
 ```javascript
 analyze_capinfos("./examples/dns.pcap")
+```
+
+**SIP Analysis:**
+```javascript
+analyze_sip_packets("/absolute/path/to/voip-signaling.pcap")
 ```
 
 **With Packet Limits:**
@@ -204,7 +214,7 @@ When analyzing DHCP packets, you'll receive structured JSON including:
 ## Notes
 
 - Bundled captures currently include `dns.pcap` and `dhcp.pcap`.
-- ICMP and TCP examples in the docs use generic file paths because those sample captures are not bundled.
+- ICMP, TCP, and SIP examples in the docs use generic file paths because those sample captures are not bundled.
 
 ## Remote File Testing
 

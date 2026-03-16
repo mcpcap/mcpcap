@@ -34,7 +34,7 @@ When adding new features, update:
 3. Code examples in quickstart
 4. Any relevant feature descriptions
 
-Current shipped modules are `dns`, `dhcp`, `icmp`, `tcp`, and `capinfos`.
+Current shipped modules are `dns`, `dhcp`, `icmp`, `tcp`, `sip`, and `capinfos`.
 
 The website should not describe startup-time PCAP selection, directory listing, or `--pcap-path` / `--pcap-url` flows. The product starts as:
 

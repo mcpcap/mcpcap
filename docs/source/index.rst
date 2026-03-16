@@ -22,7 +22,7 @@ Features
 
 - **Stateless MCP Tools**: Each analysis tool accepts PCAP file paths or URLs as parameters
 
-- **Protocol Support**: DNS, DHCP, ICMP, TCP, and CapInfos analysis
+- **Protocol Support**: DNS, DHCP, ICMP, TCP, SIP, and CapInfos analysis
 
 - **Local & Remote Files**: Analyze files from local storage or HTTP URLs
 
@@ -55,6 +55,7 @@ Then use analysis tools with any PCAP file:
    analyze_dhcp_packets("https://example.com/dhcp.pcap")
    analyze_icmp_packets("/path/to/network.pcap")
    analyze_tcp_connections("/path/to/tcp-session.pcap")
+   analyze_sip_packets("/path/to/voip-signaling.pcap")
    analyze_capinfos("/path/to/capture.pcap")
 
 .. toctree::

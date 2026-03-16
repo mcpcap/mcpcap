@@ -43,6 +43,14 @@ TCP Module
    :undoc-members:
    :show-inheritance:
 
+SIP Module
+----------
+
+.. automodule:: mcpcap.modules.sip
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 CapInfos Module
 ---------------
 
