@@ -1,19 +1,17 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "ai.mcpcap/mcpcap",
   "description": "An MCP server for analyzing PCAP files.",
-  "status": "active",
   "repository": {
     "url": "https://github.com/mcpcap/mcpcap",
     "source": "github"
   },
-  "version": "0.4.4",
+  "version": "0.6.1",
   "packages": [
     {
-      "registry_type": "pypi",
-      "registry_base_url": "https://pypi.org",
+      "registryType": "pypi",
       "identifier": "mcpcap",
-      "version": "0.4.4",
+      "version": "0.6.1",
       "transport": {
         "type": "stdio"
       }
