@@ -1,24 +1,26 @@
 # MCP Client Integration
 
-Learn how to integrate mcpcap with different MCP (Model Context Protocol) clients.
+mcpcap runs as a stateless MCP server. You start the server once, then call tools with a `pcap_file` argument that points to either a local capture or a remote HTTP URL.
 
-## What is MCP?
+## What mcpcap exposes
 
-The Model Context Protocol (MCP) enables LLMs to securely access external resources and tools. mcpcap implements an MCP server that provides network protocol analysis capabilities (DNS, DHCP, and more) to any compatible MCP client.
+CLI startup is limited to module loading and packet limits:
 
-## Available MCP Clients
+```bash
+mcpcap [--modules MODULES] [--max-packets N]
+```
 
-### Claude Desktop
+Available modules:
 
-**Best for**: End users who want AI-powered network analysis
+- `dns`
+- `dhcp`
+- `icmp`
+- `tcp`
+- `capinfos`
 
-Claude Desktop is Anthropic's official desktop application with built-in MCP support.
+## Claude Desktop
 
-#### Setup
-
-1. Install Claude Desktop from [claude.ai](https://claude.ai)
-2. Open Claude Desktop settings (Cmd/Ctrl + ,)
-3. Add mcpcap to your MCP configuration:
+Add mcpcap to Claude Desktop with the normal stdio configuration:
 
 ```json
 {
@@ -31,264 +33,115 @@ Claude Desktop is Anthropic's official desktop application with built-in MCP sup
 }
 ```
 
-4. Restart Claude Desktop
-5. Start a conversation and you'll see mcpcap tools available
+If you want to reduce the exposed tool set, configure modules explicitly:
 
-#### Usage Tips
+```json
+{
+  "mcpServers": {
+    "mcpcap-tcp": {
+      "command": "mcpcap",
+      "args": ["--modules", "tcp,capinfos", "--max-packets", "1000"]
+    }
+  }
+}
+```
 
-- Ask Claude to analyze DNS traffic: `analyze_dns_packets("/path/to/malware.pcap")` (provide file path or URL, not uploads)
-- Request security-focused analysis: "Use security_analysis prompt to examine this DNS data"
-- Get troubleshooting help: "Use network_troubleshooting prompt to diagnose DNS issues"  
-- Analyze DHCP traffic: `analyze_dhcp_packets("/path/to/network.pcap")` (file path or URL only)
-- Get file metadata: `analyze_capinfos("/path/to/capture.pcap")` (file path or URL only)
+## MCP Inspector
 
-### MCP Inspector
-
-**Best for**: Developers and technical users who want to test tools directly
-
-MCP Inspector provides a web-based interface for testing MCP servers.
-
-#### Setup
+For direct tool testing:
 
 ```bash
-# Install globally
 npm install -g @modelcontextprotocol/inspector
-
-# Run with mcpcap
 npx @modelcontextprotocol/inspector mcpcap
 ```
 
-#### Features
-
-- Interactive tool testing
-- Real-time parameter input
-- JSON response viewing
-- Resource and prompt exploration
-
-### Custom Python Client
-
-**Best for**: Developers integrating mcpcap into applications
-
-Build your own MCP client using the Python MCP library.
-
-#### Example Implementation
+## Custom Python Client
 
 ```python
 import asyncio
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-async def analyze_dns():
-    # Connect to mcpcap server
-    server_params = StdioServerParameters(
-        command="mcpcap",
-        args=[]
-    )
-    
+
+async def analyze_dns() -> None:
+    server_params = StdioServerParameters(command="mcpcap", args=[])
+
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
-            # Initialize the session
             await session.initialize()
-            
-            # List available tools
-            tools = await session.list_tools()
-            print("Available tools:", [tool.name for tool in tools.tools])
-            
-            # Call a tool
             result = await session.call_tool(
                 "analyze_dns_packets",
-                arguments={"pcap_file": "example.pcap"}
+                arguments={"pcap_file": "./examples/dns.pcap"},
             )
-            
-            print("Analysis result:", result.content)
+            print(result.content)
 
-# Run the analysis
+
 asyncio.run(analyze_dns())
 ```
 
-## Available Tools
+## Tool model
 
-### `list_pcap_files`
+There is no `list_pcap_files` tool and no startup-time PCAP selection. Each tool call includes the capture to analyze.
 
-Lists all PCAP files in the configured directory.
+### DNS
 
-**Parameters**: None
+- `analyze_dns_packets(pcap_file)`
 
-**Returns**: List of available .pcap and .pcapng files
+### DHCP
 
-### `analyze_dns_packets`
+- `analyze_dhcp_packets(pcap_file)`
 
-Analyzes DNS packets in a PCAP file.
+### ICMP
 
-**Parameters**:
-- `pcap_file` (optional): Filename to analyze (defaults to first available file)
+- `analyze_icmp_packets(pcap_file)`
 
-**Returns**: Structured JSON with DNS packet details and statistics
+### TCP
 
-### `analyze_dhcp_packets`
+- `analyze_tcp_connections(pcap_file, server_ip=None, server_port=None, detailed=False)`
+- `analyze_tcp_anomalies(pcap_file, server_ip=None, server_port=None)`
+- `analyze_tcp_retransmissions(pcap_file, server_ip=None, threshold=0.02)`
+- `analyze_traffic_flow(pcap_file, server_ip, server_port=None)`
 
-Analyzes DHCP packets in a PCAP file.
+### CapInfos
 
-**Parameters**:
-- `pcap_file` (optional): Filename to analyze (defaults to first available file)
+- `analyze_capinfos(pcap_file)`
 
-**Returns**: Structured JSON with DHCP packet details including:
-- Complete DHCP transactions (DISCOVER → OFFER → REQUEST → ACK)
-- Client and server identification (MAC addresses, hostnames)
-- IP address assignments and lease information
-- DHCP options and configurations
-- Transaction timing and statistics
+## Prompt support
 
-## Available Prompts
+Available prompts are registered by module:
 
-### DNS Analysis Prompts
+- DNS: `security_analysis`, `network_troubleshooting`, `forensic_investigation`
+- DHCP: `dhcp_network_analysis`, `dhcp_security_analysis`, `dhcp_forensic_investigation`
+- ICMP: `icmp_network_diagnostics`, `icmp_security_analysis`, `icmp_forensic_investigation`
+- TCP: `tcp_connection_troubleshooting`, `tcp_security_analysis`
 
-- `security_analysis`: Security-focused DNS analysis guidance
-- `network_troubleshooting`: Network performance troubleshooting
-- `forensic_investigation`: Digital forensics approach
+## Input expectations
 
-### DHCP Analysis Prompts
+- Local files can be absolute or relative paths as long as the server process can read them.
+- Remote files must be `http://` or `https://` URLs.
+- Supported extensions are `.pcap`, `.pcapng`, and `.cap`.
+- MCP file uploads are not consumed directly; pass a saved file path or URL instead.
 
-- `dhcp_network_analysis`: Network administration and IP management analysis
-- `dhcp_security_analysis`: Security threats and rogue DHCP server detection
-- `dhcp_forensic_investigation`: Forensic analysis of DHCP transactions and timeline
+## Usage examples
 
-## Configuration Options
-
-### Server Configuration
-
-```bash
-# Local directory
-mcpcap /path/to/pcaps
-
-# Local file
-mcpcap /path/to/specific.pcap
-
-# Remote file
-mcpcap https://example.com/capture.pcap
-
-# With analysis options
-mcpcap /path/to/pcaps --max-packets 1000 --modules dns,dhcp
+```text
+analyze_dns_packets("./examples/dns.pcap")
+analyze_dhcp_packets("./examples/dhcp.pcap")
+analyze_icmp_packets("/absolute/path/to/icmp.pcap")
+analyze_tcp_connections("/absolute/path/to/tcp-session.pcap", server_port=443)
+analyze_capinfos("https://example.com/capture.pcap")
 ```
-
-### Client Configuration Examples
-
-#### Claude Desktop (Extended)
-
-```json
-{
-  "mcpServers": {
-    "mcpcap-local-file": {
-      "command": "mcpcap",
-      "args": ["--pcap-path", "/path/to/specific.pcap", "--max-packets", "500"]
-    },
-    "mcpcap-production": {
-      "command": "mcpcap",
-      "args": ["--pcap-path", "/production/captures", "--modules", "dns,dhcp"],
-      "env": {
-        "LOG_LEVEL": "INFO"
-      }
-    },
-    "mcpcap-remote": {
-      "command": "mcpcap", 
-      "args": ["--pcap-url", "https://example.com/samples/dns.cap"]
-    }
-  }
-}
-```
-
-#### Environment Variables
-
-```bash
-# Set logging level
-export LOG_LEVEL=DEBUG
-
-# Set default PCAP path
-export mcpcap_PCAP_PATH=/default/path
-```
-
-## Best Practices
-
-### Security
-
-- Never point mcpcap at directories with sensitive captures
-- Use read-only permissions for PCAP directories when possible
-- Be cautious with captures containing personal information
-
-### Performance
-
-- Use specific filenames instead of analyzing all files at once
-- Consider splitting large PCAP files for better performance
-- Monitor memory usage with very large captures
-
-### Organization
-
-- Organize PCAP files by date, source, or investigation
-- Use descriptive filenames: `malware-sample-2024-01-15.pcap`
-- Keep separate directories for different analysis projects
 
 ## Troubleshooting
 
-### Common Issues
+**Tool missing**
+- Check the server was started with the module that owns that tool.
+- Restart the MCP client after changing config.
 
-**Tool not available in Claude Desktop**
-- Check MCP configuration syntax
-- Restart Claude Desktop after configuration changes
-- Verify mcpcap is installed and accessible
+**File not found**
+- Pass a path visible from the machine running `mcpcap`.
+- Use a valid `.pcap`, `.pcapng`, or `.cap` filename.
 
-**Server connection failed**
-- Ensure PCAP directory exists and is readable
-- Check that mcpcap command works from terminal
-- Verify no other processes are using the same resources
-
-**Empty results**
-- Confirm PCAP files contain expected traffic (DNS on `port 53`, DHCP on `port 67/68`)
-- Check file extensions are `.pcap` or `.pcapng`
-- Verify files aren't corrupted with `file` command
-- Ensure protocol modules are properly configured (`--modules dns,dhcp`)
-
-**Performance issues**
-- Use smaller PCAP files for initial testing
-- Consider filtering large captures before analysis
-- Monitor system resources during analysis
-
-## Integration Examples
-
-### Security Operations Center (SOC)
-
-```json
-{
-  "mcpServers": {
-    "mcpcap-incident": {
-      "command": "mcpcap",
-      "args": ["--pcap-path", "/incidents/current"]
-    }
-  }
-}
-```
-
-### Network Troubleshooting
-
-```json
-{
-  "mcpServers": {
-    "mcpcap-network": {
-      "command": "mcpcap",
-      "args": ["--pcap-path", "/network/diagnostics"]
-    }
-  }
-}
-```
-
-### Research and Development
-
-```json
-{
-  "mcpServers": {
-    "mcpcap-research": {
-      "command": "mcpcap",
-      "args": ["--pcap-path", "/research/samples"]
-    }
-  }
-}
-```
+**No protocol packets found**
+- The tool returns successfully even when the target protocol is absent.
+- Confirm the capture contains the traffic you expect before assuming a parser issue.

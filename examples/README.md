@@ -1,6 +1,6 @@
 # mcpcap Examples
 
-This directory contains example PCAP files for testing mcpcap's protocol analysis tools.
+This directory contains bundled example PCAP files for testing mcpcap's analysis tools.
 
 ## Example Files
 
@@ -12,7 +12,7 @@ This directory contains example PCAP files for testing mcpcap's protocol analysi
 ### 1. Start the mcpcap MCP server
 
 ```bash
-# Start with both DNS and DHCP modules (default)
+# Start with all modules (default)
 mcpcap
 
 # Or start with specific modules only
@@ -32,8 +32,13 @@ analyze_dns_packets("/absolute/path/to/examples/dns.pcap")
 
 **DHCP Analysis:**
 ```
-analyze_dhcp_packets("./examples/dhcp.pcap") 
+analyze_dhcp_packets("./examples/dhcp.pcap")
 analyze_dhcp_packets("/absolute/path/to/examples/dhcp.pcap")
+```
+
+**CapInfos Analysis:**
+```
+analyze_capinfos("./examples/dns.pcap")
 ```
 
 ## Testing with MCP Inspector
@@ -61,6 +66,11 @@ analyze_dns_packets("./examples/dns.pcap")
 **DHCP Analysis:**
 ```javascript
 analyze_dhcp_packets("./examples/dhcp.pcap")
+```
+
+**CapInfos Analysis:**
+```javascript
+analyze_capinfos("./examples/dns.pcap")
 ```
 
 **With Packet Limits:**
@@ -190,6 +200,11 @@ When analyzing DHCP packets, you'll receive structured JSON including:
   ]
 }
 ```
+
+## Notes
+
+- Bundled captures currently include `dns.pcap` and `dhcp.pcap`.
+- ICMP and TCP examples in the docs use generic file paths because those sample captures are not bundled.
 
 ## Remote File Testing
 

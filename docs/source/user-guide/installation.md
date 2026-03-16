@@ -25,8 +25,10 @@ uv add mcpcap
 To run mcpcap without installing it permanently:
 
 ```bash
-uvx mcpcap --pcap-path /path/to/pcap/files
+uvx mcpcap
 ```
+
+Then connect with an MCP client and pass a PCAP path or URL to the analysis tool you want to call.
 
 ## Development Installation
 
@@ -66,12 +68,7 @@ All dependencies are automatically installed when you install mcpcap.
 
 ### Permission Issues
 
-On some systems, you might need root privileges to capture packets:
-
-```bash
-# On Linux, you might need to run as root or set capabilities
-sudo setcap cap_net_raw+ep $(which python)
-```
+mcpcap analyzes existing capture files. It does not capture live traffic itself, so elevated packet-capture privileges are not normally required.
 
 ### Import Errors
 
