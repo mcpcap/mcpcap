@@ -13,7 +13,7 @@ mcpcap uses a modular architecture to analyze different network protocols found 
 ### Key Features
 
 - **Stateless MCP Tools**: Each analysis call supplies its own PCAP path or URL
-- **Modular Architecture**: DNS, DHCP, ICMP, TCP, and CapInfos modules with easy extensibility for new protocols  
+- **Modular Architecture**: DNS, DHCP, ICMP, TCP, SIP, and CapInfos modules with easy extensibility for new protocols  
 - **Advanced TCP Analysis**: Connection lifecycle, traffic patterns, retransmissions, and flow inspection
 - **Local & Remote PCAP Support**: Analyze files from local storage or HTTP URLs
 - **Scapy Integration**: Leverages scapy's comprehensive packet parsing capabilities
@@ -49,7 +49,7 @@ uvx mcpcap
 Start mcpcap as a stateless MCP server:
 
 ```bash
-# Default: Start with DNS, DHCP, ICMP, TCP, and CapInfos modules
+# Default: Start with DNS, DHCP, ICMP, TCP, SIP, and CapInfos modules
 mcpcap
 
 # Start with specific modules only
@@ -117,6 +117,12 @@ analyze_tcp_retransmissions("/path/to/capture.pcap")
 analyze_traffic_flow("/path/to/capture.pcap", server_ip="192.168.1.100")
 ```
 
+**SIP Analysis:**
+```
+analyze_sip_packets("/path/to/voip-signaling.pcap")
+analyze_sip_packets("https://example.com/sip-call-flow.pcap")
+```
+
 **CapInfos Analysis:**
 ```
 analyze_capinfos("/path/to/any.pcap")
@@ -179,6 +185,15 @@ analyze_capinfos("https://example.com/capture.pcap")
   - Determine RST packet sources
   - Interpret connection patterns and behaviors
 
+### SIP Analysis Tools
+
+- **`analyze_sip_packets(pcap_file)`**: SIP signaling analysis
+  - Parse SIP requests and responses across UDP and TCP transports
+  - Extract call identifiers, CSeq values, endpoints, and key signaling headers
+  - Summarize request methods and response code classes
+  - Surface user agents, signaling servers, and transport usage
+  - Support VoIP troubleshooting, security review, and forensic reconstruction
+
 ### CapInfos Analysis Tools
 
 - **`analyze_capinfos(pcap_file)`**: PCAP file metadata and statistics
@@ -211,6 +226,11 @@ mcpcap provides specialized analysis prompts to guide LLM analysis:
 - **`tcp_connection_troubleshooting`** - Connection issues, handshake analysis, termination patterns
 - **`tcp_security_analysis`** - Attack detection, firewall analysis, anomaly identification
 
+### SIP Prompts
+- **`sip_security_analysis`** - Registration abuse, toll fraud, and signaling exposure review
+- **`sip_troubleshooting_analysis`** - Call setup progression, routing mismatches, and response-code failures
+- **`sip_forensic_investigation`** - Timeline reconstruction by Call-ID, CSeq, endpoint, and transport
+
 ## Configuration Options
 
 ### Module Selection
@@ -221,8 +241,9 @@ mcpcap --modules dns              # DNS analysis only
 mcpcap --modules tcp              # TCP analysis only
 mcpcap --modules dhcp             # DHCP analysis only
 mcpcap --modules icmp             # ICMP analysis only  
+mcpcap --modules sip              # SIP analysis only
 mcpcap --modules dns,tcp          # DNS and TCP analysis
-mcpcap --modules dns,dhcp,icmp,tcp,capinfos    # All modules (default)
+mcpcap --modules dns,dhcp,icmp,tcp,sip,capinfos    # All modules (default)
 ```
 
 ### Analysis Limits
@@ -235,7 +256,7 @@ mcpcap --max-packets 1000
 ### Complete Configuration Example
 
 ```bash
-mcpcap --modules dns,dhcp,icmp,tcp,capinfos --max-packets 500
+mcpcap --modules dns,dhcp,icmp,tcp,sip,capinfos --max-packets 500
 ```
 
 ## CLI Reference
@@ -245,8 +266,8 @@ mcpcap [--modules MODULES] [--max-packets N]
 ```
 
 **Options:**
-- `--modules MODULES`: Comma-separated modules to load (default: `dns,dhcp,icmp,tcp,capinfos`)
-  - Available modules: `dns`, `dhcp`, `icmp`, `tcp`, `capinfos`
+- `--modules MODULES`: Comma-separated modules to load (default: `dns,dhcp,icmp,tcp,sip,capinfos`)
+  - Available modules: `dns`, `dhcp`, `icmp`, `tcp`, `sip`, `capinfos`
 - `--max-packets N`: Maximum packets to analyze per file (default: unlimited)
 
 **Examples:**
@@ -287,6 +308,7 @@ analyze_dns_packets("./examples/dns.pcap")
 analyze_dhcp_packets("./examples/dhcp.pcap")
 analyze_capinfos("./examples/dns.pcap")
 analyze_tcp_connections("/absolute/path/to/capture.pcap")
+analyze_sip_packets("/absolute/path/to/voip-signaling.pcap")
 ```
 
 ## Architecture
@@ -295,7 +317,7 @@ mcpcap's modular design supports easy extension:
 
 ### Core Components
 1. **BaseModule**: Shared file handling, validation, and remote download
-2. **Protocol Modules**: DNS, DHCP, ICMP, TCP, and CapInfos implementations  
+2. **Protocol Modules**: DNS, DHCP, ICMP, TCP, SIP, and CapInfos implementations  
 3. **MCP Interface**: Tool registration and prompt management
 4. **FastMCP Framework**: MCP server implementation
 
@@ -335,6 +357,7 @@ analyze_dhcp_packets("https://example.com/network-capture.pcap")
 analyze_icmp_packets("https://example.com/ping-test.pcap")
 analyze_capinfos("https://example.com/network-metadata.pcap")
 analyze_tcp_connections("https://example.com/tcp-session.pcap")
+analyze_sip_packets("https://example.com/sip-signaling.pcap")
 ```
 
 **Features:**
@@ -354,7 +377,7 @@ When analyzing PCAP files:
 
 Contributions welcome! Areas for contribution:
 
-- **New Protocol Modules**: Add support for HTTP, BGP, TCP, etc.
+- **New Protocol Modules**: Add support for HTTP, BGP, TLS, RTP, etc.
 - **Enhanced Analysis**: Improve existing DNS/DHCP analysis
 - **Security Features**: Add more threat detection capabilities
 - **Performance**: Optimize analysis for large PCAP files

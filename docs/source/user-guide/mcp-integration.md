@@ -16,6 +16,7 @@ Available modules:
 - `dhcp`
 - `icmp`
 - `tcp`
+- `sip`
 - `capinfos`
 
 ## Claude Desktop
@@ -102,6 +103,10 @@ There is no `list_pcap_files` tool and no startup-time PCAP selection. Each tool
 - `analyze_tcp_retransmissions(pcap_file, server_ip=None, threshold=0.02)`
 - `analyze_traffic_flow(pcap_file, server_ip, server_port=None)`
 
+### SIP
+
+- `analyze_sip_packets(pcap_file)`
+
 ### CapInfos
 
 - `analyze_capinfos(pcap_file)`
@@ -114,6 +119,7 @@ Available prompts are registered by module:
 - DHCP: `dhcp_network_analysis`, `dhcp_security_analysis`, `dhcp_forensic_investigation`
 - ICMP: `icmp_network_diagnostics`, `icmp_security_analysis`, `icmp_forensic_investigation`
 - TCP: `tcp_connection_troubleshooting`, `tcp_security_analysis`
+- SIP: `sip_security_analysis`, `sip_troubleshooting_analysis`, `sip_forensic_investigation`
 
 ## Input expectations
 
@@ -129,6 +135,7 @@ analyze_dns_packets("./examples/dns.pcap")
 analyze_dhcp_packets("./examples/dhcp.pcap")
 analyze_icmp_packets("/absolute/path/to/icmp.pcap")
 analyze_tcp_connections("/absolute/path/to/tcp-session.pcap", server_port=443)
+analyze_sip_packets("/absolute/path/to/voip-signaling.pcap")
 analyze_capinfos("https://example.com/capture.pcap")
 ```
 

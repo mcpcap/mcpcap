@@ -5,6 +5,7 @@ from .capinfos import CapInfosModule
 from .dhcp import DHCPModule
 from .dns import DNSModule
 from .icmp import ICMPModule
+from .sip import SIPModule
 from .tcp import TCPModule
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "DHCPModule",
     "DNSModule",
     "ICMPModule",
+    "SIPModule",
     "TCPModule",
 ]

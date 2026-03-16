@@ -13,7 +13,7 @@ pip install mcpcap
 Start mcpcap as a stateless MCP server:
 
 ```bash
-# Start with all modules (default: dns,dhcp,icmp,capinfos,tcp)
+# Start with all modules (default: dns,dhcp,icmp,tcp,sip,capinfos)
 mcpcap
 
 # Start with specific modules only
@@ -203,6 +203,38 @@ analyze_traffic_flow("/path/to/tcp-session.pcap", server_ip="10.0.0.10")
 }
 ```
 
+### SIP Analysis
+
+Use the `analyze_sip_packets` tool to inspect VoIP signaling requests, responses, and call identifiers:
+
+```javascript
+analyze_sip_packets("/path/to/voip-signaling.pcap")
+analyze_sip_packets("https://example.com/sip-call-flow.pcap")
+```
+
+**Example response shape:**
+```json
+{
+  "file": "/path/to/voip-signaling.pcap",
+  "analysis_timestamp": "2024-01-01T12:00:00.000000",
+  "sip_packets_found": 24,
+  "statistics": {
+    "requests": 10,
+    "responses": 14,
+    "methods": {
+      "INVITE": 2,
+      "REGISTER": 4
+    },
+    "response_classes": {
+      "1xx": 4,
+      "2xx": 8,
+      "4xx": 2
+    }
+  },
+  "packets": ["...detailed SIP analysis..."]
+}
+```
+
 ## 5. Use Analysis Prompts
 
 mcpcap includes specialized prompts to guide your analysis:
@@ -267,6 +299,26 @@ mcpcap includes specialized prompts to guide your analysis:
   - Evidence preservation
   - Attack vector analysis
 
+### SIP Analysis Prompts
+
+- **`sip_security_analysis`** - Security review:
+  - Registration abuse and brute-force attempts
+  - Toll fraud indicators
+  - Signaling exposure and banner leakage
+  - Unexpected SIP methods or malformed traffic
+
+- **`sip_troubleshooting_analysis`** - VoIP troubleshooting:
+  - INVITE to final response call progression
+  - Registration success and failure analysis
+  - Via/Contact routing mismatches
+  - Response-code driven failure points
+
+- **`sip_forensic_investigation`** - Forensic reconstruction:
+  - Timeline by Call-ID and CSeq
+  - Endpoint and server attribution
+  - Failed and repeated call attempts
+  - Signaling path reconstruction
+
 ## 6. Example Workflow
 
 Here's a typical analysis workflow:
@@ -278,7 +330,8 @@ Here's a typical analysis workflow:
 5. **Analyze DHCP traffic**: `analyze_dhcp_packets("/path/to/capture.pcap")`
 6. **Analyze ICMP traffic**: `analyze_icmp_packets("/path/to/capture.pcap")`
 7. **Get file metadata**: `analyze_capinfos("/path/to/capture.pcap")`
-8. **Cross-reference findings**: Correlate DNS, DHCP, ICMP, TCP, and metadata outputs for a fuller network picture
+8. **Analyze SIP signaling**: `analyze_sip_packets("/path/to/voip-signaling.pcap")`
+9. **Cross-reference findings**: Correlate DNS, DHCP, ICMP, TCP, SIP, and metadata outputs for a fuller network picture
 
 ## 7. Configuration Options
 
@@ -292,7 +345,7 @@ mcpcap --modules dns
 mcpcap --modules dhcp
 
 # All modules (default)
-mcpcap --modules dns,dhcp,icmp,capinfos,tcp
+mcpcap --modules dns,dhcp,icmp,tcp,sip,capinfos
 
 # Or specific combinations
 mcpcap --modules dns,icmp,tcp
@@ -323,7 +376,7 @@ analyze_dhcp_packets("./examples/dhcp.pcap")
 analyze_capinfos("./examples/dns.pcap")
 ```
 
-The repository currently bundles `examples/dns.pcap` and `examples/dhcp.pcap`. For ICMP and TCP examples, use your own capture file or a remote sample URL.
+The repository currently bundles `examples/dns.pcap` and `examples/dhcp.pcap`. For ICMP, TCP, and SIP examples, use your own capture file or a remote sample URL.
 
 ## Next Steps
 

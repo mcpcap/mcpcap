@@ -9,6 +9,7 @@ Included modules:
     - DHCP
     - ICMP
     - TCP
+    - SIP
     - CapInfos
 
 CLI usage::

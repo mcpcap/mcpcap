@@ -35,7 +35,7 @@ class TestConfig:
     def test_config_validation_success(self):
         """Test successful config validation."""
         config = Config()
-        assert config.modules == ["dns", "dhcp", "icmp"]
+        assert config.modules == ["dns", "dhcp", "icmp", "tcp", "sip", "capinfos"]
 
     def test_config_validation_nonexistent_path(self):
         """Test config validation with invalid max_packets."""

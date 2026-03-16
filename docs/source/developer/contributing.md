@@ -23,7 +23,7 @@ mcpcap uses a modular architecture:
 ```
 src/mcpcap/
 ├── core/              # Core MCP server and configuration
-├── modules/           # Protocol analysis modules (DNS, DHCP, etc.)
+├── modules/           # Protocol analysis modules (DNS, DHCP, SIP, etc.)
 │   ├── base.py       # Base module interface
 │   ├── dns.py        # DNS analysis module
 │   ├── dhcp.py       # DHCP analysis module
@@ -58,11 +58,14 @@ Every new module must:
 Current modules:
 - **DNS** - Domain name resolution analysis
 - **DHCP** - Dynamic host configuration analysis
+- **ICMP** - Network diagnostics and reachability analysis
+- **TCP** - Connection lifecycle and traffic pattern analysis
+- **SIP** - VoIP signaling analysis
+- **CapInfos** - PCAP metadata and file statistics
 
 Potential future modules:
 - **HTTP/HTTPS** - Web traffic analysis
 - **TLS/SSL** - Encryption and certificate analysis  
-- **ICMP** - Network diagnostics and ping analysis
 - **ARP** - Address resolution protocol analysis
 - **FTP** - File transfer protocol analysis
 - **SMTP** - Email protocol analysis
