@@ -74,7 +74,7 @@ class MCPServer:
                 transport="http",
                 host=self.config.host,
                 port=self.config.port,
-                show_banner=False
+                show_banner=False,
             )
         else:
             self.mcp.run(show_banner=False)
