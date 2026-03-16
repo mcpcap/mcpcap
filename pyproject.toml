@@ -53,6 +53,7 @@ docs = [
     "sphinx-autodoc-typehints",
     "sphinx-copybutton",
     "linkify-it-py",
+    "prompt-toolkit",
 ]
 
 [project.urls]
