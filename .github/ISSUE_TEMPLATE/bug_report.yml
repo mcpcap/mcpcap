@@ -53,9 +53,9 @@ body:
       label: PCAP File Information
       description: Information about the PCAP file that caused the issue (if applicable)
       placeholder: |
-        - File size: 
-        - Protocols present: 
-        - Capture tool: 
+        - File size:
+        - Protocols present:
+        - Capture tool:
         - Any sensitive data removed: Yes/No
     validations:
       required: false
@@ -81,9 +81,9 @@ body:
       label: Environment
       description: Information about your environment
       placeholder: |
-        - mcpcap version: 
-        - Python version: 
-        - Operating system: 
+        - mcpcap version:
+        - Python version:
+        - Operating system:
         - Installation method: pip/git/other
     validations:
       required: true

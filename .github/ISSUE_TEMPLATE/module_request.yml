@@ -33,7 +33,7 @@ body:
       description: Which OSI layer does this protocol primarily operate at?
       options:
         - Layer 2 - Data Link
-        - Layer 3 - Network  
+        - Layer 3 - Network
         - Layer 4 - Transport
         - Layer 5 - Session
         - Layer 6 - Presentation
