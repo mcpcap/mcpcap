@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /en/latest/
+
+Sitemap: https://docs.mcpcap.ai/sitemap.xml

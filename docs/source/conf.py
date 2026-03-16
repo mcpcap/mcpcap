@@ -48,8 +48,10 @@ exclude_patterns = []
 # Options for HTML output
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_baseurl = "https://docs.mcpcap.ai/en/stable/"
+html_extra_path = ["robots.txt"]
 html_theme_options = {
-    "canonical_url": "",
+    "canonical_url": html_baseurl,
     "analytics_id": "",
     "logo_only": False,
     "prev_next_buttons_location": "bottom",
