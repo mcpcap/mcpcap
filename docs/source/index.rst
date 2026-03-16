@@ -1,34 +1,36 @@
 mcpcap Documentation
 ======================
 
-.. image:: https://img.shields.io/pypi/v/mcpcap.svg
-   :target: https://pypi.org/project/mcpcap/
-   :alt: PyPI version
+.. only:: html
 
-.. image:: https://img.shields.io/pypi/pyversions/mcpcap.svg
-   :target: https://pypi.org/project/mcpcap/
-   :alt: Python versions
+   .. image:: https://img.shields.io/pypi/v/mcpcap.svg
+      :target: https://pypi.org/project/mcpcap/
+      :alt: PyPI version
 
-.. image:: https://github.com/mcpcap/mcpcap/workflows/Test/badge.svg
-   :target: https://github.com/mcpcap/mcpcap/actions
-   :alt: Test status
+   .. image:: https://img.shields.io/pypi/pyversions/mcpcap.svg
+      :target: https://pypi.org/project/mcpcap/
+      :alt: Python versions
+
+   .. image:: https://github.com/mcpcap/mcpcap/workflows/Test/badge.svg
+      :target: https://github.com/mcpcap/mcpcap/actions
+      :alt: Test status
 
 A modular Python MCP (Model Context Protocol) server for analyzing PCAP files. mcpcap provides stateless analysis tools that accept a local file path or remote URL at call time, making it a good fit for Claude Desktop and other MCP clients.
 
 Features
 --------
 
-✅ **Stateless MCP Tools**: Each analysis tool accepts PCAP file paths or URLs as parameters
+- **Stateless MCP Tools**: Each analysis tool accepts PCAP file paths or URLs as parameters
 
-✅ **Protocol Support**: DNS, DHCP, ICMP, TCP, and CapInfos analysis
+- **Protocol Support**: DNS, DHCP, ICMP, TCP, and CapInfos analysis
 
-✅ **Local & Remote Files**: Analyze files from local storage or HTTP URLs
+- **Local & Remote Files**: Analyze files from local storage or HTTP URLs
 
-✅ **Specialized Prompts**: Security, networking, and forensic analysis guidance
+- **Specialized Prompts**: Security, networking, and forensic analysis guidance
 
-✅ **Robust Analysis**: Comprehensive packet parsing with error handling
+- **Robust Analysis**: Comprehensive packet parsing with error handling
 
-✅ **Claude Desktop Ready**: Perfect integration with MCP clients
+- **Claude Desktop Ready**: Perfect integration with MCP clients
 
 Quick Start
 -----------

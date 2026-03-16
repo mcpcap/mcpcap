@@ -30,7 +30,7 @@ class TCPModule(BaseModule):
 
         This is the core tool for TCP connection analysis, solving 80% of TCP-related issues.
 
-        ⚠️  FILE UPLOAD LIMITATION: This MCP tool cannot process files uploaded through
+        FILE UPLOAD LIMITATION: This MCP tool cannot process files uploaded through
         Claude's web interface. Files must be accessible via URL or local file path.
 
         SUPPORTED INPUT FORMATS:

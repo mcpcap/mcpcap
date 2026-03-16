@@ -21,7 +21,7 @@ class DNSModule(BaseModule):
         """
         Analyze DNS packets from a PCAP file and return comprehensive analysis results.
 
-        ⚠️  FILE UPLOAD LIMITATION: This MCP tool cannot process files uploaded through
+        FILE UPLOAD LIMITATION: This MCP tool cannot process files uploaded through
         Claude's web interface. Files must be accessible via URL or local file path.
 
         SUPPORTED INPUT FORMATS:
