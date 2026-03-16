@@ -36,6 +36,23 @@ def main():
         type=int,
         help="Maximum number of packets to analyze per file (default: unlimited)",
     )
+    parser.add_argument(
+        "--transport",
+        default="stdio",
+        choices=["stdio", "http"],
+        help="Transport type (default: stdio)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port for HTTP transport (default: 8080)",
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host for HTTP transport (default: 127.0.0.1)",
+    )
 
     args = parser.parse_args()
 
@@ -51,6 +68,9 @@ def main():
         config = Config(
             modules=modules,
             max_packets=args.max_packets,
+            transport=args.transport,
+            host=args.host,
+            port=args.port,
         )
 
         # Create and start MCP server

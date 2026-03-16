@@ -69,4 +69,12 @@ class MCPServer:
     def run(self) -> None:
         """Start the MCP server."""
 
-        self.mcp.run(show_banner=False)
+        if self.config.transport == "http":
+            self.mcp.run(
+                transport="http",
+                host=self.config.host,
+                port=self.config.port,
+                show_banner=False,
+            )
+        else:
+            self.mcp.run(show_banner=False)
