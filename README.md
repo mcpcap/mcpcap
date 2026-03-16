@@ -4,7 +4,7 @@
 
 ![mcpcap logo](https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png)
 
-A modular Python MCP (Model Context Protocol) Server for analyzing PCAP files. mcpcap enables LLMs to read and analyze network packet captures with protocol-specific analysis tools that accept local file paths or remote URLs as parameters (no file uploads - provide the path or URL to your PCAP file).
+A modular Python MCP (Model Context Protocol) server for analyzing PCAP files. mcpcap exposes protocol-specific analysis tools that accept a local file path or remote HTTP URL at call time, so the server stays stateless and works cleanly with MCP clients.
 
 ## Overview
 
@@ -12,9 +12,9 @@ mcpcap uses a modular architecture to analyze different network protocols found 
 
 ### Key Features
 
-- **Stateless MCP Tools**: Each analysis accepts PCAP file paths or URLs as parameters (no file uploads)
+- **Stateless MCP Tools**: Each analysis call supplies its own PCAP path or URL
 - **Modular Architecture**: DNS, DHCP, ICMP, TCP, and CapInfos modules with easy extensibility for new protocols  
-- **Advanced TCP Analysis**: Connection tracking, anomaly detection, retransmission analysis, and traffic flow inspection
+- **Advanced TCP Analysis**: Connection lifecycle, traffic patterns, retransmissions, and flow inspection
 - **Local & Remote PCAP Support**: Analyze files from local storage or HTTP URLs
 - **Scapy Integration**: Leverages scapy's comprehensive packet parsing capabilities
 - **Specialized Analysis Prompts**: Security, networking, and forensic analysis guidance
@@ -76,7 +76,7 @@ Configure your MCP client (like Claude Desktop) to connect to the mcpcap server:
 
 ### 3. Analyze PCAP Files
 
-Use the analysis tools with any PCAP file by providing the file path or URL (not file uploads):
+Use the analysis tools with any PCAP file by providing the file path or URL when you call the tool:
 
 **DNS Analysis:**
 ```
@@ -102,7 +102,7 @@ analyze_tcp_connections("/path/to/capture.pcap")
 analyze_tcp_connections("/path/to/capture.pcap", server_ip="192.168.1.1", server_port=80)
 ```
 
-**TCP Anomaly Detection:**
+**TCP Pattern Analysis:**
 ```
 analyze_tcp_anomalies("/path/to/capture.pcap", server_ip="10.0.0.1")
 ```
@@ -161,13 +161,11 @@ analyze_capinfos("https://example.com/capture.pcap")
   - Filter by server IP and/or port
   - Detect connection issues and abnormal closures
 
-- **`analyze_tcp_anomalies(pcap_file, server_ip=None, server_port=None)`**: Intelligent TCP anomaly detection
-  - Automatically detect common network problems
-  - Identify client vs server-initiated RST patterns (firewall blocks)
-  - Detect high retransmission rates (network quality issues)
-  - Diagnose handshake failures
-  - Root cause analysis with confidence scoring
-  - Actionable recommendations
+- **`analyze_tcp_anomalies(pcap_file, server_ip=None, server_port=None)`**: Observational TCP traffic analysis
+  - Summarize handshakes, flags, resets, and retransmissions
+  - Surface directional RST and retransmission patterns
+  - Report connection lifecycle metrics
+  - Return factual traffic patterns for further investigation
 
 - **`analyze_tcp_retransmissions(pcap_file, server_ip=None, threshold=0.02)`**: TCP retransmission analysis
   - Measure overall and per-connection retransmission rates
@@ -272,7 +270,8 @@ Example PCAP files are included in the `examples/` directory:
 
 - `dns.pcap` - DNS traffic for testing DNS analysis
 - `dhcp.pcap` - DHCP 4-way handshake capture
-- `icmp.pcap` - ICMP ping and traceroute traffic
+
+There is currently no bundled ICMP sample capture in `examples/`.
 
 ### Using with MCP Inspector
 
@@ -286,8 +285,8 @@ Then test the tools:
 // In the MCP Inspector web interface
 analyze_dns_packets("./examples/dns.pcap")
 analyze_dhcp_packets("./examples/dhcp.pcap")
-analyze_icmp_packets("./examples/icmp.pcap")
 analyze_capinfos("./examples/dns.pcap")
+analyze_tcp_connections("/absolute/path/to/capture.pcap")
 ```
 
 ## Architecture
@@ -296,7 +295,7 @@ mcpcap's modular design supports easy extension:
 
 ### Core Components
 1. **BaseModule**: Shared file handling, validation, and remote download
-2. **Protocol Modules**: DNS, DHCP, ICMP, and TCP analysis implementations  
+2. **Protocol Modules**: DNS, DHCP, ICMP, TCP, and CapInfos implementations  
 3. **MCP Interface**: Tool registration and prompt management
 4. **FastMCP Framework**: MCP server implementation
 
@@ -335,6 +334,7 @@ analyze_dns_packets("https://wiki.wireshark.org/uploads/dns.cap")
 analyze_dhcp_packets("https://example.com/network-capture.pcap")
 analyze_icmp_packets("https://example.com/ping-test.pcap")
 analyze_capinfos("https://example.com/network-metadata.pcap")
+analyze_tcp_connections("https://example.com/tcp-session.pcap")
 ```
 
 **Features:**

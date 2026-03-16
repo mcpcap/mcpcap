@@ -34,3 +34,19 @@ ICMP Module
    :members:
    :undoc-members:
    :show-inheritance:
+
+TCP Module
+----------
+
+.. automodule:: mcpcap.modules.tcp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+CapInfos Module
+---------------
+
+.. automodule:: mcpcap.modules.capinfos
+   :members:
+   :undoc-members:
+   :show-inheritance:
