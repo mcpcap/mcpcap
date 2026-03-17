@@ -47,6 +47,28 @@ If you want to reduce the exposed tool set, configure modules explicitly:
 }
 ```
 
+If your client can launch Docker instead of a local binary, the same stdio setup can run through the container image:
+
+```json
+{
+  "mcpServers": {
+    "mcpcap-docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/Users/me/captures:/pcaps:ro",
+        "ghcr.io/mcpcap/mcpcap:latest"
+      ]
+    }
+  }
+}
+```
+
+In that setup, tool calls must use container-visible paths such as `/pcaps/dns.pcap`.
+
 ## HTTP MCP Clients
 
 For clients that connect to a network endpoint instead of spawning a local stdio process, start mcpcap in HTTP mode:
@@ -65,6 +87,30 @@ If you want the endpoint reachable from other machines on your network, bind a d
 
 ```bash
 mcpcap --transport http --host 0.0.0.0 --port 8080
+```
+
+The equivalent Docker command is:
+
+```bash
+docker run --rm \
+  -p 8080:8080 \
+  -v "/path/to/captures:/pcaps:ro" \
+  ghcr.io/mcpcap/mcpcap:latest \
+  --transport http --host 0.0.0.0 --port 8080
+```
+
+The repository's Compose file starts the same HTTP endpoint locally:
+
+```bash
+docker compose up
+```
+
+It pulls `ghcr.io/mcpcap/mcpcap:latest`, mounts `./examples` into the container as `/pcaps`, and serves the same endpoint locally. Tool calls should use paths such as `/pcaps/dns.pcap`.
+
+For local development against the checked-out source:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 ## MCP Inspector
@@ -144,6 +190,7 @@ Available prompts are registered by module:
 ## Input expectations
 
 - Local files can be absolute or relative paths as long as the server process can read them.
+- When running in Docker, local host paths are not visible automatically; mount them and use the in-container path instead.
 - Remote files must be `http://` or `https://` URLs.
 - Supported extensions are `.pcap`, `.pcapng`, and `.cap`.
 - MCP file uploads are not consumed directly; pass a saved file path or URL instead.
@@ -159,6 +206,12 @@ analyze_sip_packets("/absolute/path/to/voip-signaling.pcap")
 analyze_capinfos("https://example.com/capture.pcap")
 ```
 
+Docker-mounted example:
+
+```text
+analyze_dns_packets("/pcaps/dns.pcap")
+```
+
 ## Troubleshooting
 
 **Tool missing**
@@ -167,6 +220,7 @@ analyze_capinfos("https://example.com/capture.pcap")
 
 **File not found**
 - Pass a path visible from the machine running `mcpcap`.
+- In Docker, make sure the host directory is mounted into the container and use the mounted path.
 - Use a valid `.pcap`, `.pcapng`, or `.cap` filename.
 
 **No protocol packets found**

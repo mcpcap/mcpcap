@@ -608,7 +608,7 @@ Create a sample HTTP PCAP file for testing. You can generate one using:
 tcpdump -i any port 80 -w examples/http.pcap
 
 # Or use an existing sample
-curl -s https://wiki.wireshark.org/uploads/http.cap -o examples/http.pcap
+curl -s https://raw.githubusercontent.com/mcpcap/mcpcap/main/examples/dns.pcap -o examples/http.pcap
 ```
 
 ## Step 8: Update Documentation

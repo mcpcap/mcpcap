@@ -1,0 +1,16 @@
+.git
+.github
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.venv
+__pycache__
+build
+dist
+docs
+enhancement
+examples
+readme-assets
+tests
+uv.lock
+website

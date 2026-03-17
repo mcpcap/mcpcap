@@ -117,8 +117,8 @@ function initTerminalAnimation() {
 
     const cursor = terminalBody.querySelector('.terminal-cursor');
     const commands = [
-        '$ pip install mcpcap',
-        '$ mcpcap --transport http --port 8080',
+        '$ docker compose up',
+        'Pulling ghcr.io/mcpcap/mcpcap:latest',
         "Starting MCP server 'mcpcap' with transport 'http'",
         'Listening on http://127.0.0.1:8080/mcp'
     ];

@@ -15,7 +15,7 @@ mcpcap Documentation
       :target: https://github.com/mcpcap/mcpcap/actions
       :alt: Test status
 
-A modular Python MCP (Model Context Protocol) server for analyzing PCAP files. mcpcap provides stateless analysis tools that accept a local file path or remote URL at call time, making it a good fit for Claude Desktop and other MCP clients.
+A modular Python MCP (Model Context Protocol) server for analyzing PCAP files. mcpcap provides stateless analysis tools that accept a local file path or remote URL at call time, making it a good fit for Claude Desktop, HTTP MCP clients, and containerized deployments.
 
 Features
 --------
@@ -41,7 +41,15 @@ Install mcpcap:
 
    pip install mcpcap
 
-Start the MCP server:
+Or run the published container with Docker Compose:
+
+.. code-block:: bash
+
+   docker compose up
+
+This pulls ``ghcr.io/mcpcap/mcpcap:latest`` and exposes ``http://127.0.0.1:8080/mcp`` with ``./examples`` mounted as ``/pcaps``.
+
+Start the MCP server locally:
 
 .. code-block:: bash
 
@@ -58,6 +66,7 @@ Then use analysis tools with any PCAP file:
 .. code-block:: javascript
 
    analyze_dns_packets("/path/to/dns.pcap")
+   analyze_dns_packets("/pcaps/dns.pcap")
    analyze_dhcp_packets("https://example.com/dhcp.pcap")
    analyze_icmp_packets("/path/to/network.pcap")
    analyze_tcp_connections("/path/to/tcp-session.pcap")
