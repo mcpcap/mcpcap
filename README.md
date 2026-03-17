@@ -2,7 +2,7 @@
 
 <!-- mcp-name: ai.mcpcap/mcpcap -->
 
-![mcpcap logo](https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png)
+<img src="https://raw.githubusercontent.com/mcpcap/mcpcap/main/readme-assets/mcpcap-logo.png" alt="mcpcap logo" width="240" />
 
 A modular Python MCP (Model Context Protocol) server for analyzing PCAP files. mcpcap exposes protocol-specific analysis tools that accept a local file path or remote HTTP URL at call time, so the server stays stateless and works cleanly with MCP clients.
 
