@@ -1,0 +1,9 @@
+services:
+  mcpcap:
+    build:
+      context: .
+      args:
+        MCPPCAP_VERSION: 0.0.0.dev0
+        VCS_REF: local
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    image: mcpcap:dev

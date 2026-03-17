@@ -1,0 +1,9 @@
+services:
+  mcpcap:
+    image: ghcr.io/mcpcap/mcpcap:latest
+    command: ["--transport", "http", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./examples:/pcaps:ro
+    restart: unless-stopped

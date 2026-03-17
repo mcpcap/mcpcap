@@ -160,7 +160,7 @@ tcpdump -i any port [protocol-port] -w tests/fixtures/[protocol].pcap
 scapy # Use scapy to craft specific packets
 
 # Use existing samples
-wget https://wiki.wireshark.org/uploads/[protocol].cap
+wget https://raw.githubusercontent.com/mcpcap/mcpcap/main/examples/dns.pcap
 ```
 
 ## Code Style Guidelines

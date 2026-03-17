@@ -54,6 +54,42 @@ jobs:
       run: |
         python -m pytest tests/ -v
 
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Build Docker image
+      run: |
+        docker build \
+          --build-arg MCPPCAP_VERSION=0.0.0-ci \
+          --build-arg VCS_REF=${GITHUB_SHA} \
+          --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+          -t mcpcap:test .
+
+    - name: Verify stdio image startup
+      run: |
+        docker run --rm -i mcpcap:test --help
+
+    - name: Verify HTTP container startup
+      run: |
+        docker run -d --rm --name mcpcap-http -p 8080:8080 mcpcap:test --transport http --host 0.0.0.0 --port 8080
+        for attempt in $(seq 1 20); do
+          if curl --silent --show-error --output /dev/null http://127.0.0.1:8080/mcp; then
+            exit 0
+          fi
+          sleep 1
+        done
+        docker logs mcpcap-http
+        exit 1
+
+    - name: Stop HTTP container
+      if: always()
+      run: docker stop mcpcap-http || true
+
   check-version:
     runs-on: ubuntu-latest
     steps:

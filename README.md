@@ -42,6 +42,61 @@ uv add mcpcap
 uvx mcpcap
 ```
 
+### Using Docker
+
+Build the image from the repository root:
+
+```bash
+docker build -t mcpcap .
+```
+
+Run it over HTTP for MCP clients that connect to a network endpoint:
+
+```bash
+docker run --rm \
+  -p 8080:8080 \
+  -v "$(pwd)/examples:/pcaps:ro" \
+  mcpcap --transport http --host 0.0.0.0 --port 8080
+```
+
+Run it over stdio for clients that can spawn `docker run` directly:
+
+```bash
+docker run --rm -i \
+  -v "$(pwd)/examples:/pcaps:ro" \
+  mcpcap
+```
+
+When you mount local captures into the container, use the container path in tool calls:
+
+```text
+analyze_dns_packets("/pcaps/dns.pcap")
+```
+
+Remote `http://` and `https://` PCAP URLs work without a volume mount because mcpcap downloads them inside the container at call time.
+
+### Using Docker Compose
+
+For the default HTTP workflow, start the bundled Compose service:
+
+```bash
+docker compose up
+```
+
+This pulls `ghcr.io/mcpcap/mcpcap:latest`, publishes `http://127.0.0.1:8080/mcp`, and mounts `./examples` into the container as `/pcaps`.
+
+```text
+analyze_dns_packets("/pcaps/dns.pcap")
+```
+
+To analyze your own captures, change the volume in [docker-compose.yml](/Users/daniel/.codex/worktrees/4c5f/mcpcap/docker-compose.yml) from `./examples:/pcaps:ro` to your local capture directory.
+
+For local development against the checked-out source instead of GHCR:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
 ## Quick Start
 
 ### 1. Start the MCP Server
@@ -87,6 +142,21 @@ Point your HTTP-capable MCP client at:
 
 ```text
 http://127.0.0.1:8080/mcp
+```
+
+Docker users can publish the same endpoint with:
+
+```bash
+docker run --rm \
+  -p 8080:8080 \
+  -v "/path/to/captures:/pcaps:ro" \
+  mcpcap --transport http --host 0.0.0.0 --port 8080
+```
+
+Or with Compose:
+
+```bash
+docker compose up
 ```
 
 ### 3. Analyze PCAP Files
@@ -142,6 +212,12 @@ analyze_sip_packets("https://example.com/sip-call-flow.pcap")
 ```
 analyze_capinfos("/path/to/any.pcap")
 analyze_capinfos("https://example.com/capture.pcap")
+```
+
+If you are using Docker with a bind mount, pass the in-container path instead of the host path:
+
+```text
+analyze_capinfos("/pcaps/dns.pcap")
 ```
 
 ## Available Tools
@@ -386,7 +462,7 @@ Both analysis tools accept remote PCAP files via HTTP/HTTPS URLs:
 
 ```bash
 # Examples of remote analysis
-analyze_dns_packets("https://wiki.wireshark.org/uploads/dns.cap")
+analyze_dns_packets("https://raw.githubusercontent.com/mcpcap/mcpcap/main/examples/dns.pcap")
 analyze_dhcp_packets("https://example.com/network-capture.pcap")
 analyze_icmp_packets("https://example.com/ping-test.pcap")
 analyze_capinfos("https://example.com/network-metadata.pcap")

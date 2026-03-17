@@ -8,6 +8,14 @@ Get up and running with mcpcap in minutes!
 pip install mcpcap
 ```
 
+For the default containerized HTTP workflow:
+
+```bash
+docker compose up
+```
+
+This pulls `ghcr.io/mcpcap/mcpcap:latest`, serves `http://127.0.0.1:8080/mcp`, and mounts `./examples` inside the container as `/pcaps`.
+
 ## 2. Start the MCP Server
 
 Start mcpcap as a stateless MCP server:
@@ -27,6 +35,12 @@ mcpcap --transport http --host 127.0.0.1 --port 8080
 ```
 
 Keep this terminal open while your client is connected.
+
+For local development with a container build from your checkout:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
 
 ## 3. Connect with an MCP Client
 
@@ -72,6 +86,8 @@ Then configure the client to connect to:
 http://127.0.0.1:8080/mcp
 ```
 
+If you started mcpcap with Docker Compose, use the same endpoint and pass container-visible file paths such as `/pcaps/dns.pcap` when calling tools.
+
 ## 4. Analyze PCAP Files
 
 ### DNS Analysis
@@ -82,11 +98,12 @@ Use the `analyze_dns_packets` tool with any PCAP file by providing a file path o
 ```javascript
 analyze_dns_packets("/path/to/dns.pcap")
 analyze_dns_packets("./examples/dns.pcap")
+analyze_dns_packets("/pcaps/dns.pcap")
 ```
 
 **Remote files:**
 ```javascript
-analyze_dns_packets("https://wiki.wireshark.org/uploads/dns.cap")
+analyze_dns_packets("https://raw.githubusercontent.com/mcpcap/mcpcap/main/examples/dns.pcap")
 ```
 
 **Example response:**

@@ -36,6 +36,57 @@ For HTTP-based MCP clients, start mcpcap with:
 mcpcap --transport http --host 127.0.0.1 --port 8080
 ```
 
+## Using Docker
+
+Build the runtime image from the repository root:
+
+```bash
+docker build -t mcpcap .
+```
+
+Start mcpcap in HTTP mode with a mounted capture directory:
+
+```bash
+docker run --rm \
+  -p 8080:8080 \
+  -v "/path/to/captures:/pcaps:ro" \
+  mcpcap --transport http --host 0.0.0.0 --port 8080
+```
+
+For stdio-based MCP clients that can spawn containers directly:
+
+```bash
+docker run --rm -i \
+  -v "/path/to/captures:/pcaps:ro" \
+  mcpcap
+```
+
+Use the mounted container path when calling tools:
+
+```text
+analyze_dns_packets("/pcaps/dns.pcap")
+```
+
+Local file analysis only works for paths visible inside the container, so mount the directory that contains your PCAP files. Remote `http://` and `https://` captures do not require a volume mount.
+
+## Using Docker Compose
+
+The repository also includes a Compose file for the standard HTTP deployment:
+
+```bash
+docker compose up
+```
+
+This pulls `ghcr.io/mcpcap/mcpcap:latest`, starts mcpcap on `http://127.0.0.1:8080/mcp`, and mounts `./examples` as `/pcaps` inside the container.
+
+Update [docker-compose.yml](/Users/daniel/.codex/worktrees/4c5f/mcpcap/docker-compose.yml) if you want to mount a different local capture directory.
+
+For local development with a build from the checked-out repository:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
 ## Development Installation
 
 If you want to contribute to mcpcap or modify it:
