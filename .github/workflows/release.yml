@@ -11,6 +11,8 @@ jobs:
     permissions:
       contents: write  # Required for creating releases
       id-token: write  # Required for PyPI trusted publishing
+      attestations: write  # Required for GitHub build provenance attestations
+      artifact-metadata: write  # Enables linked artifact records for registry-pushed attestations
       packages: write  # Required for publishing to GHCR
 
     steps:
@@ -123,6 +125,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and publish Docker image
+      id: docker_build
       uses: docker/build-push-action@v6
       with:
         context: .
@@ -140,6 +143,13 @@ jobs:
           org.opencontainers.image.version=${{ steps.docker_meta.outputs.version }}
           org.opencontainers.image.revision=${{ github.sha }}
           org.opencontainers.image.created=${{ steps.docker_meta.outputs.created }}
+
+    - name: Generate Docker build attestation
+      uses: actions/attest-build-provenance@v3
+      with:
+        subject-name: ghcr.io/mcpcap/mcpcap
+        subject-digest: ${{ steps.docker_build.outputs.digest }}
+        push-to-registry: true
 
     # -------- MCP Registry: best practice - align server.json version ----------
     - name: Update server.json version to tag
