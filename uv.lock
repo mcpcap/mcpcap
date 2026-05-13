@@ -1296,9 +1296,9 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'test'" },
-    { name = "requests", specifier = "~=2.32.5" },
+    { name = "requests", specifier = ">=2.32.5,<2.34.0" },
     { name = "ruff", marker = "extra == 'dev'" },
-    { name = "scapy", specifier = "~=2.6.1" },
+    { name = "scapy", specifier = ">=2.6.1,<2.8.0" },
     { name = "setuptools-scm", extras = ["toml"], marker = "extra == 'dev'" },
     { name = "setuptools-scm", extras = ["toml"], marker = "extra == 'test'" },
     { name = "sphinx", marker = "extra == 'docs'", specifier = ">=7.0" },
@@ -2078,7 +2078,7 @@ wheels = [
 
 [[package]]
 name = "requests"
-version = "2.32.5"
+version = "2.33.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -2086,9 +2086,9 @@ dependencies = [
     { name = "idna" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3f5c837e9c3dfcfe2018ea6ecef224c710c85ef728f4/requests-2.32.5.tar.gz", hash = "sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf", size = 134517, upload-time = "2025-08-18T20:46:02.573Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/64/8860370b167a9721e8956ae116825caff829224fbca0ca6e7bf8ddef8430/requests-2.33.0.tar.gz", hash = "sha256:c7ebc5e8b0f21837386ad0e1c8fe8b829fa5f544d8df3b2253bff14ef29d7652", size = 134232, upload-time = "2026-03-25T15:10:41.586Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/db/4254e3eabe8020b458f1a747140d32277ec7a271daf1d235b70dc0b4e6e3/requests-2.32.5-py3-none-any.whl", hash = "sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6", size = 64738, upload-time = "2025-08-18T20:46:00.542Z" },
+    { url = "https://files.pythonhosted.org/packages/56/5d/c814546c2333ceea4ba42262d8c4d55763003e767fa169adc693bd524478/requests-2.33.0-py3-none-any.whl", hash = "sha256:3324635456fa185245e24865e810cecec7b4caf933d7eb133dcde67d48cee69b", size = 65017, upload-time = "2026-03-25T15:10:40.382Z" },
 ]
 
 [[package]]
@@ -2298,11 +2298,11 @@ wheels = [
 
 [[package]]
 name = "scapy"
-version = "2.6.1"
+version = "2.7.0rc1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/df/2f/035d3888f26d999e9680af8c7ddb7ce4ea0fd8d0e01c000de634c22dcf13/scapy-2.6.1.tar.gz", hash = "sha256:7600d7e2383c853e5c3a6e05d37e17643beebf2b3e10d7914dffcc3bc3c6e6c5", size = 2247754, upload-time = "2024-11-05T08:43:23.488Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/95/88/9f43eb9cdf704621ad69f069e886abb4dd6eb892f17675fdf7656d310626/scapy-2.7.0rc1.tar.gz", hash = "sha256:826ee58fe17beaba3a39e600cec6289db328ef005456c62c153242cd39d08203", size = 2394336, upload-time = "2025-11-02T21:15:36.968Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/34/8695b43af99d0c796e4b7933a0d7df8925f43a8abdd0ff0f6297beb4de3a/scapy-2.6.1-py3-none-any.whl", hash = "sha256:88a998572049b511a1f3e44f4aa7c62dd39c6ea2aa1bb58434f503956641789d", size = 2420670, upload-time = "2024-11-05T08:43:21.285Z" },
+    { url = "https://files.pythonhosted.org/packages/68/2c/72442f41e604f57ff9c56eb62743c13047bd146ab6435dfa7ee92c9e9494/scapy-2.7.0rc1-py3-none-any.whl", hash = "sha256:7f73adae9b05c760fc451a8edbe2795b5bcdf84db3d52d6725b80c1d1554093d", size = 2571513, upload-time = "2025-11-02T21:12:26.959Z" },
 ]
 
 [[package]]
