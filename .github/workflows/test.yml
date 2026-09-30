@@ -30,33 +30,35 @@ jobs:
 
     - name: Install uv
       uses: astral-sh/setup-uv@v4
+      with:
+        version: "0.12.19"
 
     - name: Cache uv dependencies
       uses: actions/cache@v4
       with:
         path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+        key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
         restore-keys: |
           ${{ runner.os }}-uv-${{ matrix.python-version }}-
           ${{ runner.os }}-uv-
 
     - name: Install dependencies
       run: |
-        uv pip install --system -e .[test]
+        uv sync --locked --extra dev --extra test --group build --no-install-project
+        uv sync --locked --extra dev --extra test --group build --no-build-isolation
 
     - name: Check version detection
       run: |
-        python -c "import mcpcap; print('Version:', mcpcap.__version__)"
+        uv run --locked --no-sync python -c "import mcpcap; print('Version:', mcpcap.__version__)"
 
     - name: Run linting with ruff
       run: |
-        uv pip install --system ruff
-        ruff check .
-        ruff format --check .
+        uv run --locked --no-sync ruff check .
+        uv run --locked --no-sync ruff format --check .
 
     - name: Run tests with pytest
       run: |
-        python -m pytest tests/ -v
+        uv run --locked --no-sync python -m pytest tests/ -v
 
   docker:
     runs-on: ubuntu-latest
@@ -108,20 +110,22 @@ jobs:
 
     - name: Install uv
       uses: astral-sh/setup-uv@v4
+      with:
+        version: "0.12.19"
 
     - name: Cache uv dependencies
       uses: actions/cache@v4
       with:
         path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-check-version-${{ hashFiles('pyproject.toml') }}
+        key: ${{ runner.os }}-uv-check-version-${{ hashFiles('uv.lock') }}
         restore-keys: |
           ${{ runner.os }}-uv-check-version-
           ${{ runner.os }}-uv-
 
-    - name: Install setuptools-scm
+    - name: Install locked version tools
       run: |
-        uv pip install --system setuptools-scm[toml]
+        uv sync --locked --group build --no-install-project
 
     - name: Verify version can be determined
       run: |
-        python -c "from setuptools_scm import get_version; print('Detected version:', get_version())"
+        uv run --locked --no-sync python -c "from setuptools_scm import get_version; print('Detected version:', get_version())"
