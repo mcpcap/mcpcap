@@ -3,6 +3,7 @@
 import os
 import tempfile
 
+import pytest
 from scapy.all import IP, TCP, UDP, Raw, wrpcap
 
 from mcpcap.core.config import Config
@@ -49,6 +50,50 @@ class TestSIPModule:
         """Test SIP protocol name."""
         module = SIPModule(Config())
         assert module.protocol_name == "SIP"
+
+    def test_capture_rejects_http_options_and_invalid_sip(self, tmp_path):
+        """Recognize SIP on any port while rejecting HTTP and malformed lines."""
+        lines = [
+            "OPTIONS / HTTP/1.1",
+            "OPTIONS * HTTP/1.1",
+            "INVITE sip:bob@example.com HTTP/1.1",
+            "INVITE / SIP/2.0",
+            "INVITE sip: SIP/2.0",
+            "INVITE sip:bob@example.com",
+            "SIP/2.0 nonsense",
+            "OPTIONS sip:bob@example.com SIP/2.0",
+            "INVITE sips:bob@example.com SIP/2.0",
+            "SIP/2.0 200 OK",
+        ]
+        packets = [
+            IP(src="192.0.2.10", dst="198.51.100.20")
+            / UDP(sport=9999, dport=9998)
+            / Raw(load=f"{line}\r\nContent-Length: 0\r\n\r\n")
+            for line in lines
+        ]
+        capture = tmp_path / "mixed.pcap"
+        wrpcap(str(capture), packets)
+
+        result = SIPModule(Config()).analyze_sip_packets(str(capture))
+
+        assert result["sip_packets_found"] == 3
+        assert [packet["start_line"] for packet in result["packets"]] == lines[-3:]
+
+    @pytest.mark.parametrize(
+        "request_uri", ["sip:example.com", "sips:bob@example.com", "tel:+6125550100"]
+    )
+    def test_sip_request_accepts_absolute_uris(self, request_uri):
+        """SIP permits an absolute URI even when the scheme is not sip."""
+        assert SIPModule(Config())._is_sip_payload(
+            f"INVITE {request_uri} SIP/2.0\r\n\r\n".encode()
+        )
+
+    @pytest.mark.parametrize("status_line", ["SIP/2.0 200 ", "SIP/2.0 799 Extension"])
+    def test_sip_response_allows_empty_reason_and_extension_codes(self, status_line):
+        """SIP permits an empty reason phrase and a three-digit extension code."""
+        assert SIPModule(Config())._is_sip_payload(
+            f"{status_line}\r\nContent-Length: 0\r\n\r\n".encode()
+        )
 
     def test_analyze_sip_packets_missing_file(self):
         """Test handling of missing SIP PCAP file."""

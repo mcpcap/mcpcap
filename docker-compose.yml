@@ -1,9 +1,12 @@
 services:
   mcpcap:
     image: ghcr.io/mcpcap/mcpcap:latest
-    command: ["--transport", "http", "--host", "0.0.0.0", "--port", "8080"]
+    # The server must bind all container interfaces; only publish to host loopback.
+    command: ["--transport", "http", "--host", "0.0.0.0", "--port", "8080", "--allow-unauthenticated-http"]
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
+    environment:
+      - MCPCAP_AUTH_TOKEN
     volumes:
       - ./examples:/pcaps:ro
     restart: unless-stopped

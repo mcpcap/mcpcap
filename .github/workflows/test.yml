@@ -82,7 +82,7 @@ jobs:
 
     - name: Verify HTTP container startup
       run: |
-        docker run -d --rm --name mcpcap-http -p 8080:8080 mcpcap:test --transport http --host 0.0.0.0 --port 8080
+        docker run -d --rm --name mcpcap-http -p 127.0.0.1:8080:8080 mcpcap:test --transport http --host 0.0.0.0 --port 8080 --allow-unauthenticated-http
         for attempt in $(seq 1 20); do
           if curl --silent --show-error --output /dev/null http://127.0.0.1:8080/mcp; then
             exit 0

@@ -223,6 +223,39 @@ class TestDHCPModule:
         assert result["requested_ip"] == "10.0.0.100"
         assert result["options"]["parameter_request_list"] == [1, 3, 6, 15]
 
+    def test_capture_preserves_multiple_router_and_dns_addresses(self, tmp_path):
+        """Scapy's multi-value DHCP tuples must retain every advertised address."""
+        packet = (
+            Ether()
+            / IP(src="192.0.2.1", dst="255.255.255.255")
+            / UDP(sport=67, dport=68)
+            / BOOTP(op=2)
+            / DHCP(
+                options=[
+                    ("message-type", 2),
+                    ("router", "192.0.2.1", "192.0.2.2"),
+                    ("name_server", "198.51.100.1", "198.51.100.2"),
+                    "end",
+                ]
+            )
+        )
+        capture = tmp_path / "dhcp.pcap"
+        wrpcap(str(capture), [packet])
+
+        result = DHCPModule(Config()).analyze_dhcp_packets(str(capture))
+
+        options = result["packets"][0]["options"]
+        assert options["router"] == "192.0.2.1, 192.0.2.2"
+        assert options["dns_servers"] == "198.51.100.1, 198.51.100.2"
+
+    def test_single_address_options_retain_string_values(self):
+        """Keep the existing response shape for single address DHCP options."""
+        result = DHCPModule(Config())._parse_dhcp_options(
+            [("router", "192.0.2.1"), ("name_server", "198.51.100.1")]
+        )
+        assert result["options"]["router"] == "192.0.2.1"
+        assert result["options"]["dns_servers"] == "198.51.100.1"
+
     def test_generate_statistics(self):
         """Test statistics generation."""
         config = Mock()

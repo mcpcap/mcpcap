@@ -3,6 +3,7 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 from ..core.config import Config
@@ -40,46 +41,65 @@ class BaseModule(ABC):
         """
         pass
 
-    def analyze_packets(self, pcap_file: str) -> dict[str, Any]:
+    def analyze_packets(
+        self,
+        pcap_file: str,
+        *,
+        analyzer: Callable[[str], dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Analyze packets from a PCAP file (local or remote).
 
         Args:
             pcap_file: Path to local PCAP file or HTTP URL to remote PCAP file
+            analyzer: Optional request-specific analysis callback
 
         Returns:
             A structured dictionary containing packet analysis results
         """
         # Check if this is a remote URL or local file
         if pcap_file.startswith(("http://", "https://")):
-            return self._handle_remote_analysis(pcap_file)
+            return self._handle_remote_analysis(pcap_file, analyzer=analyzer)
         else:
-            return self._handle_local_analysis(pcap_file)
+            return self._handle_local_analysis(pcap_file, analyzer=analyzer)
 
-    def _handle_remote_analysis(self, pcap_url: str) -> dict[str, Any]:
+    def _handle_remote_analysis(
+        self,
+        pcap_url: str,
+        *,
+        analyzer: Callable[[str], dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Handle remote PCAP file analysis."""
+        temp_path = None
+        local_path = None
         try:
             # Download remote file to temporary location
             with tempfile.NamedTemporaryFile(suffix=".pcap", delete=False) as tmp_file:
                 temp_path = tmp_file.name
 
             local_path = self._download_pcap_file(pcap_url, temp_path)
-            result = self._analyze_protocol_file(local_path)
-
-            # Clean up temporary file
-            try:
-                os.unlink(local_path)
-            except OSError:
-                pass  # Ignore cleanup errors
-
-            return result
+            return (analyzer or self._analyze_protocol_file)(local_path)
 
         except Exception as e:
             return {
                 "error": f"Failed to download PCAP file '{pcap_url}': {str(e)}",
                 "pcap_url": pcap_url,
             }
+        finally:
+            # Downloads and analysis can both fail after creating the file.
+            for path in {temp_path, local_path}:
+                if path is None:
+                    continue
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass  # Ignore cleanup errors
 
-    def _handle_local_analysis(self, pcap_file: str) -> dict[str, Any]:
+    def _handle_local_analysis(
+        self,
+        pcap_file: str,
+        *,
+        analyzer: Callable[[str], dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Handle local PCAP file analysis."""
         # Validate file exists
         if not os.path.exists(pcap_file):
@@ -96,7 +116,7 @@ class BaseModule(ABC):
             }
 
         try:
-            return self._analyze_protocol_file(pcap_file)
+            return (analyzer or self._analyze_protocol_file)(pcap_file)
         except Exception as e:
             return {
                 "error": f"Failed to analyze PCAP file '{pcap_file}': {str(e)}",
@@ -116,14 +136,14 @@ class BaseModule(ABC):
         import requests
 
         try:
-            response = requests.get(pcap_url, timeout=60, stream=True)
-            response.raise_for_status()
+            with requests.get(pcap_url, timeout=60, stream=True) as response:
+                response.raise_for_status()
 
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
 
-            with open(local_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                with open(local_path, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
 
             return local_path
 

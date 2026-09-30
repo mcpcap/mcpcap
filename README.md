@@ -56,9 +56,9 @@ Run it over HTTP for MCP clients that connect to a network endpoint:
 
 ```bash
 docker run --rm \
-  -p 8080:8080 \
+  -p 127.0.0.1:8080:8080 \
   -v "$(pwd)/examples:/pcaps:ro" \
-  mcpcap --transport http --host 0.0.0.0 --port 8080
+  mcpcap --transport http --host 0.0.0.0 --port 8080 --allow-unauthenticated-http
 ```
 
 Run it over stdio for clients that can spawn `docker run` directly:
@@ -85,13 +85,13 @@ For the default HTTP workflow, start the bundled Compose service:
 docker compose up
 ```
 
-This pulls `ghcr.io/mcpcap/mcpcap:latest`, publishes `http://127.0.0.1:8080/mcp`, and mounts `./examples` into the container as `/pcaps`.
+This pulls `ghcr.io/mcpcap/mcpcap:latest`, publishes `http://127.0.0.1:8080/mcp` only on host loopback, and mounts `./examples` into the container as `/pcaps`.
 
 ```text
 analyze_dns_packets("/pcaps/dns.pcap")
 ```
 
-To analyze your own captures, change the volume in [docker-compose.yml](/Users/daniel/.codex/worktrees/4c5f/mcpcap/docker-compose.yml) from `./examples:/pcaps:ro` to your local capture directory.
+To analyze your own captures, change the volume in [docker-compose.yml](docker-compose.yml) from `./examples:/pcaps:ro` to your local capture directory.
 
 For local development against the checked-out source instead of GHCR:
 
@@ -150,9 +150,9 @@ Docker users can publish the same endpoint with:
 
 ```bash
 docker run --rm \
-  -p 8080:8080 \
+  -p 127.0.0.1:8080:8080 \
   -v "/path/to/captures:/pcaps:ro" \
-  mcpcap --transport http --host 0.0.0.0 --port 8080
+  mcpcap --transport http --host 0.0.0.0 --port 8080 --allow-unauthenticated-http
 ```
 
 Or with Compose:
@@ -160,6 +160,16 @@ Or with Compose:
 ```bash
 docker compose up
 ```
+
+HTTP binds on non-loopback interfaces require the `MCPCAP_AUTH_TOKEN` environment secret. Set a strong random secret through your secret manager or enter it without recording it in shell history:
+
+```bash
+read -rs -p "HTTP bearer token: " MCPCAP_AUTH_TOKEN
+export MCPCAP_AUTH_TOKEN
+mcpcap --transport http --host 0.0.0.0 --port 8080
+```
+
+Clients must send `Authorization: Bearer <secret>` on every request. Use a TLS reverse proxy and an HTTPS URL for remote clients. A configured token also protects loopback endpoints; stdio is unaffected. The Docker examples use `--allow-unauthenticated-http` to bind inside the container while publishing only to host loopback. Keep that loopback mapping and use a trusted local Docker network; other containers on the same network can reach the service. Compose forwards `MCPCAP_AUTH_TOKEN` when set, so you can also secure the local container endpoint. See the [HTTP integration guide](docs/source/user-guide/mcp-integration.md) for details.
 
 ### 3. Analyze PCAP Files
 
@@ -355,7 +365,7 @@ mcpcap
 # HTTP transport for network-accessible MCP clients
 mcpcap --transport http
 
-# HTTP transport on a custom interface and port
+# HTTP transport on a custom interface and port (requires MCPCAP_AUTH_TOKEN)
 mcpcap --transport http --host 0.0.0.0 --port 9000
 ```
 
@@ -368,7 +378,7 @@ mcpcap --modules dns,dhcp,icmp,tcp,sip,capinfos --max-packets 500
 ## CLI Reference
 
 ```bash
-mcpcap [--modules MODULES] [--max-packets N] [--transport {stdio,http}] [--host HOST] [--port PORT]
+mcpcap [--modules MODULES] [--max-packets N] [--transport {stdio,http}] [--host HOST] [--port PORT] [--allow-unauthenticated-http]
 ```
 
 **Options:**
@@ -378,6 +388,7 @@ mcpcap [--modules MODULES] [--max-packets N] [--transport {stdio,http}] [--host 
 - `--transport {stdio,http}`: MCP transport to expose (default: `stdio`)
 - `--host HOST`: Host to bind for HTTP transport (default: `127.0.0.1`)
 - `--port PORT`: Port to bind for HTTP transport (default: `8080`)
+- `--allow-unauthenticated-http`: Permit a non-loopback bind without a token only for isolated local deployments, such as Docker with a loopback-published port
 
 **Examples:**
 ```bash

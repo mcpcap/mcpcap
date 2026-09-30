@@ -159,8 +159,9 @@ class DHCPModule(BaseModule):
         }
 
         for opt in options:
-            if isinstance(opt, tuple) and len(opt) == 2:
-                key, value = opt
+            if isinstance(opt, tuple) and len(opt) >= 2:
+                key = opt[0]
+                value = opt[1] if len(opt) == 2 else opt[1:]
 
                 if key == "message-type":
                     dhcp_info["message_type"] = message_types.get(
@@ -181,9 +182,13 @@ class DHCPModule(BaseModule):
                 elif key == "subnet_mask":
                     dhcp_info["options"]["subnet_mask"] = str(value)
                 elif key == "router":
-                    dhcp_info["options"]["router"] = str(value)
+                    dhcp_info["options"]["router"] = ", ".join(
+                        str(address) for address in opt[1:]
+                    )
                 elif key == "name_server":
-                    dhcp_info["options"]["dns_servers"] = str(value)
+                    dhcp_info["options"]["dns_servers"] = ", ".join(
+                        str(address) for address in opt[1:]
+                    )
                 elif key == "requested_addr":
                     dhcp_info["requested_ip"] = str(value)
                 elif key == "client_id":

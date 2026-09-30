@@ -7,7 +7,7 @@ mcpcap runs as a stateless MCP server. You start the server once, then call tool
 CLI startup supports module selection, packet limits, and MCP transport choice:
 
 ```bash
-mcpcap [--modules MODULES] [--max-packets N] [--transport {stdio,http}] [--host HOST] [--port PORT]
+mcpcap [--modules MODULES] [--max-packets N] [--transport {stdio,http}] [--host HOST] [--port PORT] [--allow-unauthenticated-http]
 ```
 
 Available modules:
@@ -83,20 +83,26 @@ Then point the client at:
 http://127.0.0.1:8080/mcp
 ```
 
-If you want the endpoint reachable from other machines on your network, bind a different host:
+For access from other machines, set a strong bearer secret using your service's secret configuration or enter it without adding it to shell history:
 
 ```bash
+read -rs -p "HTTP bearer token: " MCPCAP_AUTH_TOKEN
+export MCPCAP_AUTH_TOKEN
 mcpcap --transport http --host 0.0.0.0 --port 8080
 ```
 
-The equivalent Docker command is:
+Configure the client to send `Authorization: Bearer <secret>` on every request. Use HTTPS through a TLS reverse proxy for remote clients; plain HTTP exposes bearer credentials and capture data on the network. Protect access to the secret and rotate it by restarting the server with a new value. There is no token command-line argument.
+
+Non-loopback HTTP binds fail at startup without `MCPCAP_AUTH_TOKEN`. Setting the variable also protects loopback HTTP endpoints; stdio does not use it.
+
+For a local Docker endpoint published only to host loopback:
 
 ```bash
 docker run --rm \
-  -p 8080:8080 \
+  -p 127.0.0.1:8080:8080 \
   -v "/path/to/captures:/pcaps:ro" \
   ghcr.io/mcpcap/mcpcap:latest \
-  --transport http --host 0.0.0.0 --port 8080
+  --transport http --host 0.0.0.0 --port 8080 --allow-unauthenticated-http
 ```
 
 The repository's Compose file starts the same HTTP endpoint locally:
@@ -105,7 +111,9 @@ The repository's Compose file starts the same HTTP endpoint locally:
 docker compose up
 ```
 
-It pulls `ghcr.io/mcpcap/mcpcap:latest`, mounts `./examples` into the container as `/pcaps`, and serves the same endpoint locally. Tool calls should use paths such as `/pcaps/dns.pcap`.
+It publishes only to `127.0.0.1`, pulls `ghcr.io/mcpcap/mcpcap:latest`, mounts `./examples` into the container as `/pcaps`, and serves the same endpoint locally. Tool calls should use paths such as `/pcaps/dns.pcap`.
+
+The explicit `--allow-unauthenticated-http` exception lets the server bind all container interfaces while Docker publishes only to host loopback. Other containers on the same Docker network can still reach the service, so use this exception only on a trusted local Docker network. Keep the loopback publication; do not use this exception to expose the service remotely. Compose forwards `MCPCAP_AUTH_TOKEN` when set in your environment, and a configured token is enforced even with the exception flag. To require a token with `docker run`, add `-e MCPCAP_AUTH_TOKEN` before the image name after setting the variable securely.
 
 For local development against the checked-out source:
 
