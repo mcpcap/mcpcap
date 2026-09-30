@@ -1,4 +1,7 @@
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.12.19 /uv /uvx /bin/
 
 ARG MCPPCAP_VERSION=0.0.0
 ARG VCS_REF=unknown
@@ -16,7 +19,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TMPDIR=/tmp \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    SETUPTOOLS_SCM_PRETEND_VERSION=${MCPPCAP_VERSION}
+    SETUPTOOLS_SCM_PRETEND_VERSION=${MCPPCAP_VERSION} \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
@@ -25,11 +29,14 @@ RUN groupadd --system mcpcap \
     && mkdir -p /pcaps /tmp \
     && chown -R mcpcap:mcpcap /pcaps /tmp /home/mcpcap
 
-COPY pyproject.toml README.md LICENSE ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src ./src
 
-RUN python -m pip install --no-cache-dir uv \
-    && uv pip install --system .
+# An optional combined CA bundle supports builds behind a trusted HTTPS proxy.
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export SSL_CERT_FILE=/run/secrets/proxy_ca; fi; \
+    uv sync --locked --no-dev --group build --no-install-project \
+    && uv sync --locked --no-dev --group build --no-editable --no-build-isolation
 
 USER mcpcap
 

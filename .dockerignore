@@ -3,7 +3,7 @@
 .mypy_cache
 .pytest_cache
 .ruff_cache
-.venv
+.venv*
 __pycache__
 build
 dist
@@ -12,5 +12,4 @@ enhancement
 examples
 readme-assets
 tests
-uv.lock
 website

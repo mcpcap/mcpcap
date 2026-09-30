@@ -28,19 +28,21 @@ jobs:
 
     - name: Install uv
       uses: astral-sh/setup-uv@v4
+      with:
+        version: "0.12.19"
 
     - name: Cache uv dependencies
       uses: actions/cache@v4
       with:
         path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-release-${{ hashFiles('pyproject.toml') }}
+        key: ${{ runner.os }}-uv-release-${{ hashFiles('uv.lock') }}
         restore-keys: |
           ${{ runner.os }}-uv-release-
           ${{ runner.os }}-uv-
 
     - name: Install build dependencies
       run: |
-        uv pip install --system build setuptools-scm[toml]
+        uv sync --locked --extra dev --group build --no-install-project
 
     - name: Verify version matches tag
       run: |
@@ -51,7 +53,7 @@ jobs:
         echo "Current tag: $(git describe --tags)"
         echo "All tags: $(git tag --list | tail -3)"
         # Get version from setuptools-scm with debug
-        DETECTED_VERSION=$(python -c "import setuptools_scm; print(setuptools_scm.get_version())")
+        DETECTED_VERSION=$(uv run --locked --no-sync python -c "import setuptools_scm; print(setuptools_scm.get_version())")
         echo "Tag version: $TAG_VERSION"
         echo "Detected version: $DETECTED_VERSION"
         # Verify they match
@@ -63,12 +65,11 @@ jobs:
 
     - name: Build package
       run: |
-        python -m build
+        uv run --locked --no-sync python -m build --no-isolation
 
     - name: Verify package contents
       run: |
-        uv pip install --system twine
-        twine check dist/*
+        uv run --locked --no-sync twine check dist/*
 
     - name: Create GitHub Release
       run: |
