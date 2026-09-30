@@ -48,9 +48,9 @@ Start mcpcap in HTTP mode with a mounted capture directory:
 
 ```bash
 docker run --rm \
-  -p 8080:8080 \
+  -p 127.0.0.1:8080:8080 \
   -v "/path/to/captures:/pcaps:ro" \
-  mcpcap --transport http --host 0.0.0.0 --port 8080
+  mcpcap --transport http --host 0.0.0.0 --port 8080 --allow-unauthenticated-http
 ```
 
 For stdio-based MCP clients that can spawn containers directly:
@@ -77,15 +77,19 @@ The repository also includes a Compose file for the standard HTTP deployment:
 docker compose up
 ```
 
-This pulls `ghcr.io/mcpcap/mcpcap:latest`, starts mcpcap on `http://127.0.0.1:8080/mcp`, and mounts `./examples` as `/pcaps` inside the container.
+This pulls `ghcr.io/mcpcap/mcpcap:latest`, starts mcpcap on host loopback at `http://127.0.0.1:8080/mcp`, and mounts `./examples` as `/pcaps` inside the container.
 
-Update [docker-compose.yml](/Users/daniel/.codex/worktrees/4c5f/mcpcap/docker-compose.yml) if you want to mount a different local capture directory.
+Update [docker-compose.yml](../../../docker-compose.yml) if you want to mount a different local capture directory.
 
 For local development with a build from the checked-out repository:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
+
+The Docker HTTP examples bind all container interfaces using `--allow-unauthenticated-http`, with port publication restricted to host loopback. Use this exception only on a trusted local Docker network: other containers on that network can reach the service. Compose forwards `MCPCAP_AUTH_TOKEN` if you set it securely in your environment; configured tokens are enforced even with the exception flag.
+
+For remote HTTP deployments, non-loopback binds require a strong `MCPCAP_AUTH_TOKEN` environment secret, clients must send `Authorization: Bearer <secret>`, and connections should use HTTPS through a TLS reverse proxy. See [HTTP MCP Clients](mcp-integration.md#http-mcp-clients) for setup. Stdio is unaffected.
 
 ## Development Installation
 

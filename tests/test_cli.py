@@ -2,6 +2,8 @@
 
 from unittest.mock import Mock, patch
 
+import pytest
+
 from mcpcap.cli import main
 
 
@@ -30,6 +32,7 @@ class TestCLI:
             transport="stdio",
             host="127.0.0.1",
             port=8080,
+            allow_unauthenticated_http=False,
         )
         mock_server.assert_called_once_with(config_instance)
         server_instance.run.assert_called_once()
@@ -116,6 +119,7 @@ class TestCLI:
             transport="stdio",
             host="127.0.0.1",
             port=8080,
+            allow_unauthenticated_http=False,
         )
         assert result == 0
 
@@ -141,5 +145,50 @@ class TestCLI:
             transport="stdio",
             host="127.0.0.1",
             port=8080,
+            allow_unauthenticated_http=False,
         )
         assert result == 0
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.0.2.10", "example.com"])
+def test_cli_rejects_unauthenticated_remote_http(monkeypatch, capsys, host):
+    """Remote binds must fail before starting the server unless secured."""
+    monkeypatch.delenv("MCPCAP_AUTH_TOKEN", raising=False)
+    monkeypatch.setattr("sys.argv", ["mcpcap", "--transport", "http", "--host", host])
+    with patch("mcpcap.cli.MCPServer") as server:
+        assert main() == 1
+    server.assert_not_called()
+    assert "requires MCPCAP_AUTH_TOKEN" in capsys.readouterr().err
+
+
+def test_cli_explicit_unauthenticated_container_bind(monkeypatch):
+    """Allow the documented exception for loopback-published containers."""
+    monkeypatch.delenv("MCPCAP_AUTH_TOKEN", raising=False)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "mcpcap",
+            "--transport",
+            "http",
+            "--host",
+            "0.0.0.0",
+            "--allow-unauthenticated-http",
+        ],
+    )
+    with patch("mcpcap.cli.MCPServer") as server:
+        assert main() == 0
+    assert server.call_args.args[0].allow_unauthenticated_http is True
+
+
+def test_cli_remote_http_uses_environment_secret(monkeypatch, capsys):
+    """The environment secret enables authentication and is never printed."""
+    secret = "secret-for-cli-test"
+    monkeypatch.setenv("MCPCAP_AUTH_TOKEN", secret)
+    monkeypatch.setattr(
+        "sys.argv", ["mcpcap", "--transport", "http", "--host", "0.0.0.0"]
+    )
+    with patch("mcpcap.cli.MCPServer") as server:
+        assert main() == 0
+    assert server.call_args.args[0].auth_token == secret
+    output = capsys.readouterr()
+    assert secret not in output.err + output.out

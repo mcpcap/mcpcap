@@ -1,13 +1,23 @@
 """TCP analysis module."""
 
+from bisect import bisect_left
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import datetime
+from functools import partial
+from types import MappingProxyType
 from typing import Any
 
 from fastmcp import FastMCP
-from scapy.all import IP, TCP, IPv6, rdpcap
+from scapy.all import IP, TCP, IPv6, Padding, PcapReader
 
 from .base import BaseModule
+
+
+def _tcp_payload_length(tcp: Any) -> int:
+    """Count TCP data without link-layer padding attached by Scapy."""
+    padding = len(tcp[Padding]) if tcp.haslayer(Padding) else 0
+    return len(tcp.payload) - padding
 
 
 class TCPModule(BaseModule):
@@ -163,44 +173,64 @@ class TCPModule(BaseModule):
     def analyze_packets(
         self, pcap_file: str, analysis_type: str = "connections", **kwargs
     ) -> dict[str, Any]:
-        """Analyze packets with specified analysis type."""
-        self._analysis_type = analysis_type
-        self._analysis_kwargs = kwargs
-        return super().analyze_packets(pcap_file)
+        """Analyze with immutable options belonging only to this request."""
+        analyzer = partial(
+            self._analyze_protocol_file,
+            analysis_type=analysis_type,
+            options=MappingProxyType(dict(kwargs)),
+        )
+        return super().analyze_packets(pcap_file, analyzer=analyzer)
 
-    def _analyze_protocol_file(self, pcap_file: str) -> dict[str, Any]:
-        """Perform the actual TCP packet analysis on a local PCAP file."""
+    def _analyze_protocol_file(
+        self,
+        pcap_file: str,
+        analysis_type: str = "connections",
+        options: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Read a bounded capture and pass request options to each analysis."""
+        options = options if options is not None else MappingProxyType({})
         try:
-            packets = rdpcap(pcap_file)
+            packets = []
+            truncated = False
+            with PcapReader(pcap_file) as reader:
+                for pkt in reader:
+                    if (
+                        self.config.max_packets is not None
+                        and len(packets) >= self.config.max_packets
+                    ):
+                        truncated = True
+                        break
+                    packets.append(pkt)
             tcp_packets = [pkt for pkt in packets if pkt.haslayer(TCP)]
-
+            metadata = {
+                "packets_analyzed": len(packets),
+                "max_packets": self.config.max_packets,
+                "truncated": truncated,
+            }
             if not tcp_packets:
                 return {
                     "file": pcap_file,
                     "total_packets": len(packets),
                     "tcp_packets_found": 0,
                     "message": "No TCP packets found in this capture",
+                    **metadata,
                 }
 
-            # Apply filtering if specified
             filtered_packets = self._apply_filters(
-                tcp_packets,
-                self._analysis_kwargs.get("server_ip"),
-                self._analysis_kwargs.get("server_port"),
+                tcp_packets, options.get("server_ip"), options.get("server_port")
             )
-
-            # Route to appropriate analysis method
-            if self._analysis_type == "connections":
-                return self._analyze_connections(pcap_file, filtered_packets, packets)
-            elif self._analysis_type == "anomalies":
-                return self._analyze_anomalies(pcap_file, filtered_packets, packets)
-            elif self._analysis_type == "retransmissions":
-                return self._analyze_retrans(pcap_file, filtered_packets, packets)
-            elif self._analysis_type == "traffic_flow":
-                return self._analyze_flow(pcap_file, filtered_packets, packets)
-            else:
-                return {"error": f"Unknown analysis type: {self._analysis_type}"}
-
+            analyses = {
+                "connections": self._analyze_connections,
+                "anomalies": self._analyze_anomalies,
+                "retransmissions": self._analyze_retrans,
+                "traffic_flow": self._analyze_flow,
+            }
+            if analysis_type not in analyses:
+                return {"error": f"Unknown analysis type: {analysis_type}"}
+            result = analyses[analysis_type](
+                pcap_file, filtered_packets, packets, options
+            )
+            return {**result, **metadata}
         except Exception as e:
             return {
                 "error": f"Error reading PCAP file '{pcap_file}': {str(e)}",
@@ -232,7 +262,11 @@ class TCPModule(BaseModule):
         return filtered
 
     def _analyze_connections(
-        self, pcap_file: str, tcp_packets: list, all_packets: list
+        self,
+        pcap_file: str,
+        tcp_packets: list,
+        all_packets: list,
+        options: Mapping[str, Any],
     ) -> dict[str, Any]:
         """Analyze TCP connections."""
         # Group packets by connection (4-tuple)
@@ -279,8 +313,8 @@ class TCPModule(BaseModule):
             "total_packets": len(all_packets),
             "tcp_packets_found": len(tcp_packets),
             "filter": {
-                "server_ip": self._analysis_kwargs.get("server_ip"),
-                "server_port": self._analysis_kwargs.get("server_port"),
+                "server_ip": options.get("server_ip"),
+                "server_port": options.get("server_port"),
             },
             "summary": {
                 "total_connections": len(connections),
@@ -294,7 +328,7 @@ class TCPModule(BaseModule):
                 - normal_close,
             },
             "connections": connection_details
-            if self._analysis_kwargs.get("detailed", False)
+            if options.get("detailed", False)
             else connection_details[:10],
             "issues": issues,
         }
@@ -313,8 +347,8 @@ class TCPModule(BaseModule):
         data_packets = 0
         retransmissions = 0
 
-        seen_seqs_by_sender: dict[tuple[str, int], set[int]] = defaultdict(set)
-        handshake_completed = False
+        data_ranges = _TCPDataRanges()
+        handshake_completed = self._handshake_completed(packets)
 
         for pkt in packets:
             src_ip, _ = self._extract_ips(pkt)
@@ -334,19 +368,11 @@ class TCPModule(BaseModule):
                 fin_count += 1
 
             # Check for data
-            if len(tcp.payload) > 0:
+            if _tcp_payload_length(tcp) > 0:
                 data_packets += 1
 
-            # Detect retransmissions (simplified)
-            seq = tcp.seq
-            sender = (src_ip, tcp.sport)
-            if seq in seen_seqs_by_sender[sender] and len(tcp.payload) > 0:
+            if data_ranges.observe(conn_key, (src_ip, tcp.sport), tcp):
                 retransmissions += 1
-            seen_seqs_by_sender[sender].add(seq)
-
-        # Determine handshake completion
-        if syn_count > 0 and syn_ack_count > 0 and ack_count > 0:
-            handshake_completed = True
 
         # Determine close reason
         close_reason = "unknown"
@@ -374,7 +400,11 @@ class TCPModule(BaseModule):
         }
 
     def _analyze_anomalies(
-        self, pcap_file: str, tcp_packets: list, all_packets: list
+        self,
+        pcap_file: str,
+        tcp_packets: list,
+        all_packets: list,
+        options: Mapping[str, Any],
     ) -> dict[str, Any]:
         """Detect TCP anomalies using pattern-based analysis.
 
@@ -389,7 +419,7 @@ class TCPModule(BaseModule):
             connections[conn_key].append(pkt)
 
         # Collect comprehensive statistics
-        stats = self._collect_tcp_statistics(connections, tcp_packets)
+        stats = self._collect_tcp_statistics(connections, tcp_packets, options)
 
         # Detect observable patterns (not diagnoses)
         patterns = self._detect_tcp_patterns(stats, connections)
@@ -398,8 +428,8 @@ class TCPModule(BaseModule):
             "file": pcap_file,
             "analysis_timestamp": datetime.now().isoformat(),
             "filter": {
-                "server_ip": self._analysis_kwargs.get("server_ip"),
-                "server_port": self._analysis_kwargs.get("server_port"),
+                "server_ip": options.get("server_ip"),
+                "server_port": options.get("server_port"),
             },
             "statistics": stats,
             "patterns": patterns,
@@ -407,10 +437,14 @@ class TCPModule(BaseModule):
         }
 
     def _analyze_retrans(
-        self, pcap_file: str, tcp_packets: list, all_packets: list
+        self,
+        pcap_file: str,
+        tcp_packets: list,
+        all_packets: list,
+        options: Mapping[str, Any],
     ) -> dict[str, Any]:
         """Analyze TCP retransmissions."""
-        threshold = self._analysis_kwargs.get("threshold", 0.02)
+        threshold = options.get("threshold", 0.02)
 
         # Group by connection
         connections = defaultdict(list)
@@ -424,7 +458,7 @@ class TCPModule(BaseModule):
         worst_conn = ""
 
         for conn_key, pkts in connections.items():
-            src_ip, src_port, dst_ip, dst_port = conn_key
+            (src_ip, src_port), (dst_ip, dst_port) = conn_key
             conn_str = f"{src_ip}:{src_port} <-> {dst_ip}:{dst_port}"
 
             conn_info = self._analyze_single_connection(conn_key, pkts)
@@ -471,11 +505,15 @@ class TCPModule(BaseModule):
         }
 
     def _analyze_flow(
-        self, pcap_file: str, tcp_packets: list, all_packets: list
+        self,
+        pcap_file: str,
+        tcp_packets: list,
+        all_packets: list,
+        options: Mapping[str, Any],
     ) -> dict[str, Any]:
         """Analyze traffic flow."""
-        server_ip = self._analysis_kwargs.get("server_ip")
-        server_port = self._analysis_kwargs.get("server_port")
+        server_ip = options.get("server_ip")
+        server_port = options.get("server_port")
 
         if not server_ip:
             return {"error": "server_ip is required for traffic flow analysis"}
@@ -500,8 +538,7 @@ class TCPModule(BaseModule):
             "retransmissions": 0,
         }
 
-        client_seqs = set()
-        server_seqs = set()
+        data_ranges = _TCPDataRanges()
 
         for pkt in tcp_packets:
             src_ip, dst_ip = self._extract_ips(pkt)
@@ -514,7 +551,6 @@ class TCPModule(BaseModule):
                 is_client_to_server = tcp.dport == server_port
 
             stats = client_to_server if is_client_to_server else server_to_client
-            seqs = client_seqs if is_client_to_server else server_seqs
 
             stats["packet_count"] += 1
             stats["byte_count"] += len(pkt)
@@ -525,14 +561,13 @@ class TCPModule(BaseModule):
                 stats["rst_count"] += 1
             if flags & 0x01:
                 stats["fin_count"] += 1
-            if len(tcp.payload) > 0:
+            if _tcp_payload_length(tcp) > 0:
                 stats["data_packets"] += 1
 
-            # Retransmissions
-            seq = tcp.seq
-            if seq in seqs and len(tcp.payload) > 0:
+            if data_ranges.observe(
+                self._get_connection_key(pkt), (src_ip, tcp.sport), tcp
+            ):
                 stats["retransmissions"] += 1
-            seqs.add(seq)
 
         # Analysis
         total_client = client_to_server["packet_count"]
@@ -570,6 +605,31 @@ class TCPModule(BaseModule):
             },
         }
 
+    def _handshake_completed(self, packets: list) -> bool:
+        """Require an ordered SYN, reverse SYN-ACK, and matching final ACK."""
+        syns = set()
+        pending_acks = set()
+        mask = (1 << 32) - 1
+        for pkt in packets:
+            src_ip, dst_ip = self._extract_ips(pkt)
+            tcp = pkt[TCP]
+            sender = (src_ip, tcp.sport)
+            receiver = (dst_ip, tcp.dport)
+            flags = int(tcp.flags)
+            if flags & 0x04:
+                syns.clear()
+                pending_acks.clear()
+            elif flags & 0x02:
+                next_seq = (tcp.seq + 1 + _tcp_payload_length(tcp)) & mask
+                if flags & 0x10:
+                    if (receiver, sender, tcp.ack) in syns:
+                        pending_acks.add((receiver, sender, tcp.ack, next_seq))
+                else:
+                    syns.add((sender, receiver, next_seq))
+            elif flags & 0x10 and (sender, receiver, tcp.seq, tcp.ack) in pending_acks:
+                return True
+        return False
+
     def _get_connection_key(self, pkt) -> tuple:
         """Extract a direction-agnostic connection key."""
         src_ip, dst_ip = self._extract_ips(pkt)
@@ -605,13 +665,13 @@ class TCPModule(BaseModule):
         return "unknown", "unknown"
 
     def _collect_tcp_statistics(
-        self, connections: dict, tcp_packets: list
+        self, connections: dict, tcp_packets: list, options: Mapping[str, Any]
     ) -> dict[str, Any]:
         """Collect comprehensive TCP statistics from connections.
 
         Returns factual metrics without interpretation.
         """
-        server_ip = self._analysis_kwargs.get("server_ip")
+        server_ip = options.get("server_ip")
         stats = {
             "total_connections": len(connections),
             "total_packets": len(tcp_packets),
@@ -649,7 +709,7 @@ class TCPModule(BaseModule):
         }
 
         for conn_key, pkts in connections.items():
-            src_ip, src_port, dst_ip, dst_port = conn_key
+            (src_ip, src_port), (dst_ip, dst_port) = conn_key
             conn_info = self._analyze_single_connection(conn_key, pkts)
 
             # Handshake analysis
@@ -938,3 +998,45 @@ Provide specific diagnostics with evidence and actionable remediation steps."""
    - Track attacker behavior patterns
 
 Present findings with severity levels, evidence, and recommended security actions."""
+
+
+class _TCPDataRanges:
+    """Track observed payload intervals separately for every connection and sender.
+
+    Sequence numbers are unwrapped relative to the highest observed payload end;
+    TCP serial ordering assumes consecutive observations are less than 2**31 apart.
+    Any overlap counts one retransmitting packet, including partial overlaps.
+    ACK-only packets and SYN/FIN sequence-space consumption are not payload.
+    """
+
+    def __init__(self) -> None:
+        self.ranges: dict[tuple, list[tuple[int, int]]] = defaultdict(list)
+        self.frontiers: dict[tuple, int] = {}
+
+    def observe(self, connection: tuple, sender: tuple, tcp: Any) -> bool:
+        size = _tcp_payload_length(tcp)
+        if not size:
+            return False
+        key = (connection, sender)
+        modulus = 1 << 32
+        raw_seq = (int(tcp.seq) + bool(tcp.flags & 0x02)) % modulus
+        frontier = self.frontiers.get(key, raw_seq)
+        delta = (raw_seq - frontier + (1 << 31)) % modulus - (1 << 31)
+        start = frontier + delta
+        end = start + size
+        self.frontiers[key] = max(frontier, end)
+        intervals = self.ranges[key]
+        index = bisect_left(intervals, (start,))
+        if index and intervals[index - 1][1] >= start:
+            index -= 1
+        stop = index
+        overlap = False
+        merged_start, merged_end = start, end
+        while stop < len(intervals) and intervals[stop][0] <= merged_end:
+            lower, upper = intervals[stop]
+            overlap |= lower < end and upper > start
+            merged_start = min(merged_start, lower)
+            merged_end = max(merged_end, upper)
+            stop += 1
+        intervals[index:stop] = [(merged_start, merged_end)]
+        return overlap

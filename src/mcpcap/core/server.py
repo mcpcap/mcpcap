@@ -1,6 +1,10 @@
 """MCP server setup and configuration."""
 
+import hashlib
+import hmac
+
 from fastmcp import FastMCP
+from fastmcp.server.auth import AccessToken, TokenVerifier
 
 from ..modules.capinfos import CapInfosModule
 from ..modules.dhcp import DHCPModule
@@ -9,6 +13,20 @@ from ..modules.icmp import ICMPModule
 from ..modules.sip import SIPModule
 from ..modules.tcp import TCPModule
 from .config import Config
+
+
+class _BearerTokenVerifier(TokenVerifier):
+    """Verify an environment-provided bearer secret without storing it in claims."""
+
+    def __init__(self, token: str):
+        super().__init__()
+        self._token_digest = hashlib.sha256(token.encode()).digest()
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        digest = hashlib.sha256(token.encode()).digest()
+        if not hmac.compare_digest(digest, self._token_digest):
+            return None
+        return AccessToken(token=token, client_id="mcpcap", scopes=[])
 
 
 class MCPServer:
@@ -22,7 +40,12 @@ class MCPServer:
         """
         self.config = config
 
-        self.mcp = FastMCP("mcpcap")
+        auth = (
+            _BearerTokenVerifier(config.auth_token)
+            if config.transport == "http" and config.auth_token
+            else None
+        )
+        self.mcp = FastMCP("mcpcap", auth=auth)
 
         # Initialize modules based on configuration
         self.modules = {}

@@ -14,7 +14,7 @@ For the default containerized HTTP workflow:
 docker compose up
 ```
 
-This pulls `ghcr.io/mcpcap/mcpcap:latest`, serves `http://127.0.0.1:8080/mcp`, and mounts `./examples` inside the container as `/pcaps`.
+This pulls `ghcr.io/mcpcap/mcpcap:latest`, serves `http://127.0.0.1:8080/mcp` only on host loopback, and mounts `./examples` inside the container as `/pcaps`.
 
 ## 2. Start the MCP Server
 
@@ -87,6 +87,8 @@ http://127.0.0.1:8080/mcp
 ```
 
 If you started mcpcap with Docker Compose, use the same endpoint and pass container-visible file paths such as `/pcaps/dns.pcap` when calling tools.
+
+HTTP is unauthenticated by default only on loopback. To use a non-loopback host, securely set a strong `MCPCAP_AUTH_TOKEN` environment secret, configure the client to send `Authorization: Bearer <secret>` on every request, and use HTTPS through a TLS reverse proxy. A configured token also protects local HTTP endpoints. Compose forwards this environment variable and publishes only to host loopback; its unauthenticated container bind is intended only for trusted local Docker networks. See [HTTP MCP Clients](mcp-integration.md#http-mcp-clients) for details.
 
 ## 4. Analyze PCAP Files
 

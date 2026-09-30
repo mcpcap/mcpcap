@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from fastmcp import FastMCP
-from scapy.all import ICMP, IP, IPv6, rdpcap
+from scapy.all import ICMP, IP, ICMPv6DestUnreach, IPv6, rdpcap
 
 from .base import BaseModule
 
@@ -45,7 +45,11 @@ class ICMPModule(BaseModule):
         """Perform the actual ICMP packet analysis on a local PCAP file."""
         try:
             packets = rdpcap(pcap_file)
-            icmp_packets = [pkt for pkt in packets if pkt.haslayer(ICMP)]
+            icmp_packets = [
+                pkt
+                for pkt in packets
+                if pkt.haslayer(ICMP) or pkt.haslayer(ICMPv6DestUnreach)
+            ]
 
             if not icmp_packets:
                 return {
@@ -180,6 +184,7 @@ class ICMPModule(BaseModule):
                 info["icmp_code_name"] = dest_unreach_codes.get(
                     icmp_code, f"Unknown Code ({icmp_code})"
                 )
+                self._extract_original_destination(icmp_layer.payload, info)
             elif icmp_type == 11:  # Time Exceeded
                 info["icmp_code_name"] = time_exceeded_codes.get(
                     icmp_code, f"Unknown Code ({icmp_code})"
@@ -187,7 +192,37 @@ class ICMPModule(BaseModule):
             else:
                 info["icmp_code_name"] = f"Code {icmp_code}"
 
+        elif packet.haslayer(ICMPv6DestUnreach):
+            icmp_layer = packet[ICMPv6DestUnreach]
+            info.update(
+                {
+                    "icmp_type": icmp_layer.type,
+                    "icmp_code": icmp_layer.code,
+                    "icmp_type_name": "Destination Unreachable",
+                    "icmp_id": None,
+                    "icmp_seq": None,
+                    "checksum": icmp_layer.cksum,
+                    "icmp_code_name": {
+                        0: "No Route to Destination",
+                        1: "Administratively Prohibited",
+                        2: "Beyond Scope of Source Address",
+                        3: "Address Unreachable",
+                        4: "Port Unreachable",
+                        5: "Source Address Failed Policy",
+                        6: "Reject Route to Destination",
+                    }.get(icmp_layer.code, f"Unknown Code ({icmp_layer.code})"),
+                }
+            )
+            self._extract_original_destination(icmp_layer.payload, info)
+
         return info
+
+    @staticmethod
+    def _extract_original_destination(payload: Any, info: dict[str, Any]) -> None:
+        """Read the original destination from the quoted IP header, when present."""
+        # Scapy decodes quoted headers as IPerror/IPv6error subclasses.
+        if isinstance(payload, (IP, IPv6)):
+            info["original_dst_ip"] = payload.dst
 
     def _generate_statistics(self, packets: list[dict[str, Any]]) -> dict[str, Any]:
         """Generate statistics from analyzed ICMP packets."""
@@ -225,9 +260,8 @@ class ICMPModule(BaseModule):
                     stats["echo_pairs"][echo_id]["replies"] += 1
 
             # Track unreachable destinations
-            if pkt.get("icmp_type") == 3:  # Destination Unreachable
-                if "dst_ip" in pkt:
-                    stats["unreachable_destinations"].add(pkt["dst_ip"])
+            if "original_dst_ip" in pkt:
+                stats["unreachable_destinations"].add(pkt["original_dst_ip"])
 
         # Convert sets to lists for JSON serialization
         return {

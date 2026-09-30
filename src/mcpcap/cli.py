@@ -53,6 +53,14 @@ def main():
         default="127.0.0.1",
         help="Host for HTTP transport (default: 127.0.0.1)",
     )
+    parser.add_argument(
+        "--allow-unauthenticated-http",
+        action="store_true",
+        help=(
+            "Allow HTTP without MCPCAP_AUTH_TOKEN on non-loopback hosts; "
+            "only for isolated local deployments"
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -71,6 +79,7 @@ def main():
             transport=args.transport,
             host=args.host,
             port=args.port,
+            allow_unauthenticated_http=args.allow_unauthenticated_http,
         )
 
         # Create and start MCP server

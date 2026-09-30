@@ -1,5 +1,6 @@
 """SIP analysis module."""
 
+import re
 from collections import Counter
 from datetime import datetime
 from typing import Any
@@ -126,17 +127,22 @@ class SIPModule(BaseModule):
     def _is_sip_payload(self, payload: bytes) -> bool:
         """Check whether payload bytes look like a SIP message."""
         try:
-            first_line = (
-                payload.decode("utf-8", errors="ignore").splitlines()[0].strip()
-            )
+            first_line = payload.decode("utf-8", errors="ignore").splitlines()[0]
         except IndexError:
             return False
 
         if first_line.startswith("SIP/2.0 "):
-            return True
+            return re.fullmatch(r"SIP/2\.0 [0-9]{3} .*", first_line) is not None
 
-        method = first_line.split(" ", 1)[0].upper()
-        return method in SIP_METHODS
+        parts = first_line.split(" ")
+        if len(parts) != 3:
+            return False
+        method, request_uri, version = parts
+        return (
+            method in SIP_METHODS
+            and version == "SIP/2.0"
+            and re.fullmatch(r"[A-Za-z][A-Za-z0-9+.-]*:[^\s]+", request_uri) is not None
+        )
 
     def _analyze_sip_packet(self, pkt: Any, packet_number: int) -> dict[str, Any]:
         """Analyze a single SIP packet."""
